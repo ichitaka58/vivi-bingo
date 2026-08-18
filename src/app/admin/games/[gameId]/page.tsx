@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { useParams } from "next/navigation";
+import { supabase } from "@/lib/supabase";
 
 type GameStatus = "draft" | "open" | "playing" | "finished";
 
@@ -60,7 +61,8 @@ export default function AdminGamePage() {
 
   useEffect(() => {
     let cancelled = false;
-    async function run() {
+
+    async function refresh() {
       const result = await fetchGameDetail(gameId);
       if (cancelled) {
         return;
@@ -72,9 +74,61 @@ export default function AdminGamePage() {
       }
       setLoading(false);
     }
-    run();
+
+    async function run() {
+      await refresh();
+      if (cancelled) {
+        return;
+      }
+      const channel = supabase
+        .channel(`admin-game-${gameId}`)
+        .on(
+          "postgres_changes",
+          {
+            event: "*",
+            schema: "public",
+            table: "games",
+            filter: `id=eq.${gameId}`,
+          },
+          () => {
+            refresh();
+          }
+        )
+        .on(
+          "postgres_changes",
+          {
+            event: "*",
+            schema: "public",
+            table: "draws",
+            filter: `game_id=eq.${gameId}`,
+          },
+          () => {
+            refresh();
+          }
+        )
+        .on(
+          "postgres_changes",
+          {
+            event: "*",
+            schema: "public",
+            table: "boards",
+            filter: `game_id=eq.${gameId}`,
+          },
+          () => {
+            refresh();
+          }
+        )
+        .subscribe();
+
+      return () => {
+        supabase.removeChannel(channel);
+      };
+    }
+
+    const cleanupPromise = run();
     return () => {
       cancelled = true;
+      cleanupPromise.then((cleanup) => cleanup?.());
     };
   }, [gameId]);
 
