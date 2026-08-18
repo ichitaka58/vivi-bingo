@@ -1,12 +1,17 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useParams } from "next/navigation";
 import { supabase } from "@/lib/supabase";
 
 type GameStatus = "draft" | "open" | "playing" | "finished";
 type BoardNumbers = (number | null)[][];
 type BoardMarked = boolean[][];
+
+type DrawEntry = {
+  number: number;
+  drawOrder: number;
+};
 
 type Board = {
   boardId: string;
@@ -22,6 +27,7 @@ type GameSummary = {
   title: string;
   status: GameStatus;
   lastDrawNumber: number | null;
+  drawHistory: DrawEntry[];
 };
 
 const COLUMN_LABELS = ["B", "I", "N", "G", "O"];
@@ -61,6 +67,7 @@ export default function BoardPage() {
   const [game, setGame] = useState<GameSummary | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const historyScrollRef = useRef<HTMLDivElement | null>(null);
 
   useEffect(() => {
     let cancelled = false;
@@ -138,6 +145,14 @@ export default function BoardPage() {
     };
   }, [boardId]);
 
+  useEffect(() => {
+    const el = historyScrollRef.current;
+    if (!el) {
+      return;
+    }
+    el.scrollLeft = el.scrollWidth;
+  }, [game?.drawHistory.length]);
+
   if (loading) {
     return (
       <div className="flex flex-1 items-center justify-center px-4 py-16">
@@ -188,6 +203,29 @@ export default function BoardPage() {
           {game.lastDrawNumber ?? "-"}
         </p>
       </div>
+
+      {game.drawHistory.length > 0 && (
+        <div
+          ref={historyScrollRef}
+          className="flex gap-2 overflow-x-auto rounded-lg border border-black/10 p-3 dark:border-white/15"
+        >
+          {game.drawHistory.map((draw, index) => {
+            const isLatest = index === game.drawHistory.length - 1;
+            return (
+              <div
+                key={draw.number}
+                className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-full text-sm font-semibold tabular-nums ${
+                  isLatest
+                    ? "bg-foreground text-background"
+                    : "bg-black/5 dark:bg-white/10"
+                }`}
+              >
+                {draw.number}
+              </div>
+            );
+          })}
+        </div>
+      )}
 
       <div className="grid grid-cols-5 gap-1">
         {COLUMN_LABELS.map((label) => (
