@@ -49,7 +49,7 @@ export async function GET(
   const [
     { count: boardCount, error: boardCountError },
     { count: drawCount, error: drawCountError },
-    { data: lastDrawData, error: lastDrawError },
+    { data: drawHistoryData, error: drawHistoryError },
     { data: reachData, error: reachError },
     { data: bingoData, error: bingoError },
   ] = await Promise.all([
@@ -63,11 +63,9 @@ export async function GET(
       .eq("game_id", gameId),
     supabaseAdmin
       .from("draws")
-      .select("number")
+      .select("number, draw_order")
       .eq("game_id", gameId)
-      .order("draw_order", { ascending: false })
-      .limit(1)
-      .maybeSingle(),
+      .order("draw_order", { ascending: true }),
     supabaseAdmin
       .from("boards")
       .select("user_id, users(name)")
@@ -83,12 +81,16 @@ export async function GET(
   if (
     boardCountError ||
     drawCountError ||
-    lastDrawError ||
+    drawHistoryError ||
     reachError ||
     bingoError
   ) {
     return errorResponse("ゲーム集計情報の取得に失敗しました。", 500);
   }
+
+  const drawHistory = (
+    (drawHistoryData as { number: number; draw_order: number }[] | null) ?? []
+  ).map((row) => ({ number: row.number, drawOrder: row.draw_order }));
 
   const toUserList = (rows: BoardUserRow[] | null) =>
     (rows ?? []).map((row) => ({
@@ -107,7 +109,10 @@ export async function GET(
     createdAt: game.created_at,
     drawCount: drawCount ?? 0,
     lastDrawNumber:
-      (lastDrawData as { number: number } | null)?.number ?? null,
+      drawHistory.length > 0
+        ? drawHistory[drawHistory.length - 1].number
+        : null,
+    drawHistory,
     reachUsers: toUserList(reachData as unknown as BoardUserRow[] | null),
     bingoUsers: toUserList(bingoData as unknown as BoardUserRow[] | null),
   });
