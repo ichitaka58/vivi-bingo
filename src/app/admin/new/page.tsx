@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, type FormEvent } from "react";
+import { useState, type SubmitEvent } from "react";
 
 type CreatedGame = {
   id: string;
@@ -20,7 +20,7 @@ export default function NewGamePage() {
   const [error, setError] = useState<string | null>(null);
   const [createdGame, setCreatedGame] = useState<CreatedGame | null>(null);
 
-  async function handleSubmit(event: FormEvent<HTMLFormElement>) {
+  async function handleSubmit(event: SubmitEvent<HTMLFormElement>) {
     event.preventDefault();
     setSubmitting(true);
     setError(null);
