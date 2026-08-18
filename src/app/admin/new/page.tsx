@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, type SubmitEvent } from "react";
+import QrCode from "@/components/QrCode";
 
 type CreatedGame = {
   id: string;
@@ -86,6 +87,9 @@ export default function NewGamePage() {
               </dd>
             </div>
           </dl>
+          <div className="flex justify-center pt-2">
+            <QrCode value={joinUrl} />
+          </div>
         </div>
       </div>
     );

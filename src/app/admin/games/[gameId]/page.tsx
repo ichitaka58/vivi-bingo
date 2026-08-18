@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import { useParams } from "next/navigation";
 import { supabase } from "@/lib/supabase";
+import QrCode from "@/components/QrCode";
 
 type GameStatus = "draft" | "open" | "playing" | "finished";
 
@@ -303,6 +304,9 @@ export default function AdminGamePage() {
         <p className="mt-2 text-sm text-zinc-500">
           参加受付期限: {new Date(game.joinExpiresAt).toLocaleString("ja-JP")}
         </p>
+        <div className="mt-3 flex justify-center">
+          <QrCode value={joinUrl} />
+        </div>
       </div>
 
       <button
