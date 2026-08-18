@@ -1,11 +1,17 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useParams } from "next/navigation";
+import { supabase } from "@/lib/supabase";
 
 type GameStatus = "draft" | "open" | "playing" | "finished";
 type BoardNumbers = (number | null)[][];
 type BoardMarked = boolean[][];
+
+type DrawEntry = {
+  number: number;
+  drawOrder: number;
+};
 
 type Board = {
   boardId: string;
@@ -21,10 +27,37 @@ type GameSummary = {
   title: string;
   status: GameStatus;
   lastDrawNumber: number | null;
+  drawHistory: DrawEntry[];
 };
 
 const COLUMN_LABELS = ["B", "I", "N", "G", "O"];
 const BOARD_SIZE = 5;
+
+async function fetchBoardAndGame(
+  boardId: string
+): Promise<{ board?: Board; game?: GameSummary; error?: string }> {
+  try {
+    const boardRes = await fetch(`/api/boards/${boardId}`);
+    const boardData = await boardRes.json();
+    if (!boardRes.ok) {
+      return {
+        error: boardData.error?.message ?? "ボード情報の取得に失敗しました。",
+      };
+    }
+
+    const gameRes = await fetch(`/api/games/${boardData.gameId}`);
+    const gameData = await gameRes.json();
+    if (!gameRes.ok) {
+      return {
+        error: gameData.error?.message ?? "ゲーム情報の取得に失敗しました。",
+      };
+    }
+
+    return { board: boardData as Board, game: gameData as GameSummary };
+  } catch {
+    return { error: "通信エラーが発生しました。" };
+  }
+}
 
 export default function BoardPage() {
   const params = useParams<{ boardId: string }>();
@@ -34,48 +67,91 @@ export default function BoardPage() {
   const [game, setGame] = useState<GameSummary | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const historyScrollRef = useRef<HTMLDivElement | null>(null);
 
   useEffect(() => {
     let cancelled = false;
-    async function run() {
-      try {
-        const boardRes = await fetch(`/api/boards/${boardId}`);
-        const boardData = await boardRes.json();
-        if (cancelled) {
-          return;
-        }
-        if (!boardRes.ok) {
-          setError(boardData.error?.message ?? "ボード情報の取得に失敗しました。");
-          setLoading(false);
-          return;
-        }
 
-        const gameRes = await fetch(`/api/games/${boardData.gameId}`);
-        const gameData = await gameRes.json();
-        if (cancelled) {
-          return;
-        }
-        if (!gameRes.ok) {
-          setError(gameData.error?.message ?? "ゲーム情報の取得に失敗しました。");
-          setLoading(false);
-          return;
-        }
-
-        setBoard(boardData as Board);
-        setGame(gameData as GameSummary);
-        setLoading(false);
-      } catch {
-        if (!cancelled) {
-          setError("通信エラーが発生しました。");
-          setLoading(false);
-        }
+    async function refresh(): Promise<string | undefined> {
+      const result = await fetchBoardAndGame(boardId);
+      if (cancelled) {
+        return undefined;
       }
+      if (result.error || !result.board || !result.game) {
+        setError(result.error ?? "ボードが見つかりません。");
+        setLoading(false);
+        return undefined;
+      }
+      setBoard(result.board);
+      setGame(result.game);
+      setLoading(false);
+      return result.board.gameId;
     }
-    run();
+
+    async function run() {
+      const gameId = await refresh();
+      if (cancelled || !gameId) {
+        return;
+      }
+      const channel = supabase
+        .channel(`board-${boardId}`)
+        .on(
+          "postgres_changes",
+          {
+            event: "*",
+            schema: "public",
+            table: "boards",
+            filter: `id=eq.${boardId}`,
+          },
+          () => {
+            refresh();
+          }
+        )
+        .on(
+          "postgres_changes",
+          {
+            event: "*",
+            schema: "public",
+            table: "draws",
+            filter: `game_id=eq.${gameId}`,
+          },
+          () => {
+            refresh();
+          }
+        )
+        .on(
+          "postgres_changes",
+          {
+            event: "*",
+            schema: "public",
+            table: "games",
+            filter: `id=eq.${gameId}`,
+          },
+          () => {
+            refresh();
+          }
+        )
+        .subscribe();
+
+      return () => {
+        supabase.removeChannel(channel);
+      };
+    }
+
+    const cleanupPromise = run();
     return () => {
       cancelled = true;
+      cleanupPromise.then((cleanup) => cleanup?.());
     };
   }, [boardId]);
+
+  useEffect(() => {
+    const el = historyScrollRef.current;
+    if (!el) {
+      return;
+    }
+    el.scrollLeft = el.scrollWidth;
+  }, [game?.drawHistory.length]);
 
   if (loading) {
     return (
@@ -127,6 +203,29 @@ export default function BoardPage() {
           {game.lastDrawNumber ?? "-"}
         </p>
       </div>
+
+      {game.drawHistory.length > 0 && (
+        <div
+          ref={historyScrollRef}
+          className="flex gap-2 overflow-x-auto rounded-lg border border-black/10 p-3 dark:border-white/15"
+        >
+          {game.drawHistory.map((draw, index) => {
+            const isLatest = index === game.drawHistory.length - 1;
+            return (
+              <div
+                key={draw.number}
+                className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-full text-sm font-semibold tabular-nums ${
+                  isLatest
+                    ? "bg-foreground text-background"
+                    : "bg-black/5 dark:bg-white/10"
+                }`}
+              >
+                {draw.number}
+              </div>
+            );
+          })}
+        </div>
+      )}
 
       <div className="grid grid-cols-5 gap-1">
         {COLUMN_LABELS.map((label) => (
