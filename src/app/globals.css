@@ -10,6 +10,21 @@
   --color-foreground: var(--foreground);
   --font-sans: var(--font-geist-sans);
   --font-mono: var(--font-geist-mono);
+  --animate-bingo-flash: bingo-flash 1.4s ease-in-out infinite;
+}
+
+@keyframes bingo-flash {
+  0%,
+  100% {
+    background-color: #ffd700;
+    box-shadow: 0 0 0 rgba(255, 215, 0, 0);
+    transform: scale(1.1);
+  }
+  50% {
+    background-color: #fff6d8;
+    box-shadow: 0 0 16px 4px rgba(255, 215, 0, 0.65);
+    transform: scale(1);
+  }
 }
 
 @media (prefers-color-scheme: dark) {
