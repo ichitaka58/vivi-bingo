@@ -4,6 +4,7 @@ import { useEffect, useRef, useState } from "react";
 import { useParams } from "next/navigation";
 import { supabase } from "@/lib/supabase";
 import { judgeBingo } from "@/lib/bingo-judge";
+import { fireBingoCelebration } from "@/lib/bingo-confetti";
 
 type GameStatus = "draft" | "open" | "playing" | "finished";
 type BoardNumbers = (number | null)[][];
@@ -74,11 +75,16 @@ export default function BoardPage() {
   const flashTimeoutsRef = useRef<Set<ReturnType<typeof setTimeout>>>(
     new Set()
   );
+  const bingoCelebratedRef = useRef(false); // このボードでクラッカー演出を発火済みか（1回だけ発火させるため）
+  const confettiCancelRef = useRef<(() => void) | null>(null); // 発火中のクラッカー演出を止める関数
 
+  // ボード/ゲーム情報の取得＋Supabase Realtime購読。
+  // 新しく当たったマスを検出してflashingCellsに積み、3秒後に自動で外す（＝当選フラッシュ演出）。
   useEffect(() => {
     let cancelled = false;
     const flashTimeouts = flashTimeoutsRef.current;
 
+    // ボード/ゲーム情報を取得し直し、前回との差分から新しく当たったマスを検出する
     async function refresh(): Promise<string | undefined> {
       const result = await fetchBoardAndGame(boardId);
       if (cancelled) {
@@ -90,6 +96,8 @@ export default function BoardPage() {
         return undefined;
       }
 
+      // 初回取得時（prevMarked未設定）は比較対象がないのでフラッシュさせない。
+      // 2回目以降の取得で「前回false→今回true」になったマスだけを新規当選とみなす。
       const prevMarked = previousMarkedRef.current;
       if (prevMarked) {
         const newlyMarkedKeys: string[] = [];
@@ -101,6 +109,8 @@ export default function BoardPage() {
           }
         }
         if (newlyMarkedKeys.length > 0) {
+          // 新規当選マスをflashingCellsに追加してフラッシュ表示を開始し、
+          // 3秒後にそれぞれ個別のタイマーで取り除く（＝フラッシュ終了→通常の当選マス表示へ）
           setFlashingCells((prev) => {
             const next = new Set(prev);
             newlyMarkedKeys.forEach((key) => next.add(key));
@@ -130,8 +140,11 @@ export default function BoardPage() {
       return result.board.gameId;
     }
 
+    // boardIdが変わるたびに演出関連の状態をリセットしてから初回取得し、
+    // その後はboards/draws/gamesテーブルの変更をRealtimeで購読してrefresh()を呼び直す
     async function run() {
       previousMarkedRef.current = null;
+      bingoCelebratedRef.current = false;
       setFlashingCells(new Set());
       const gameId = await refresh();
       if (cancelled || !gameId) {
@@ -191,6 +204,7 @@ export default function BoardPage() {
     };
   }, [boardId]);
 
+  // 抽選履歴が増えるたびに横スクロールを右端（最新）まで動かす
   useEffect(() => {
     const el = historyScrollRef.current;
     if (!el) {
@@ -198,6 +212,24 @@ export default function BoardPage() {
     }
     el.scrollLeft = el.scrollWidth;
   }, [game?.drawHistory.length]);
+
+  // ビンゴ成立時にクラッカー演出を1回だけ発火する。
+  // 当選フラッシュが残っている間（flashingCells.size > 0）は演出を待機し、
+  // フラッシュが終わってから発火する（celebrationReadyと同じ考え方）
+  useEffect(() => {
+    if (!board?.isBingo || flashingCells.size > 0 || bingoCelebratedRef.current) {
+      return;
+    }
+    bingoCelebratedRef.current = true;
+    confettiCancelRef.current = fireBingoCelebration();
+  }, [board?.isBingo, flashingCells.size]);
+
+  // アンマウント時に発火中のクラッカー演出を止める
+  useEffect(() => {
+    return () => {
+      confettiCancelRef.current?.();
+    };
+  }, []);
 
   if (loading) {
     return (
@@ -224,10 +256,18 @@ export default function BoardPage() {
     }
   }
 
-  // 抽選直後のマスはまず当選フラッシュを最後まで見せてから、リーチ演出を出す
-  const reachVisible = flashingCells.size === 0;
+  // 抽選直後のマスはまず当選フラッシュを最後まで見せてから、リーチ/ビンゴ演出を出す
+  const celebrationReady = flashingCells.size === 0;
+  // 現在のmarkedからリーチ/ビンゴになっているライン（セル座標）を算出し、
+  // ハイライト対象のマスを「col-row」キーのSetにしておく（cells.map内で参照する）
+  const judged = judgeBingo(board.marked);
   const reachCellKeys = new Set(
-    judgeBingo(board.marked).reachLines.flatMap((line) =>
+    judged.reachLines.flatMap((line) =>
+      line.map(({ col, row }) => `${col}-${row}`)
+    )
+  );
+  const bingoCellKeys = new Set(
+    judged.bingoLines.flatMap((line) =>
       line.map(({ col, row }) => `${col}-${row}`)
     )
   );
@@ -245,13 +285,15 @@ export default function BoardPage() {
         </p>
       )}
 
-      {board.isReach && reachVisible && (
+      {board.isReach && celebrationReady && (
         <p className="animate-reach-pop text-center text-2xl font-bold text-[#d97706]">
           リーチ！
         </p>
       )}
-      {board.isBingo && (
-        <p className="text-center text-2xl font-bold">ビンゴ！</p>
+      {board.isBingo && celebrationReady && (
+        <p className="animate-reach-pop text-center text-3xl font-bold text-[#d97706]">
+          ビンゴ！
+        </p>
       )}
 
       <div className="rounded-lg border border-black/10 p-4 text-center dark:border-white/15">
@@ -298,16 +340,21 @@ export default function BoardPage() {
           const key = `${col}-${row}`;
           const isFlashing = flashingCells.has(key);
           const isMarked = board.marked[col][row];
-          const isReachCell = reachVisible && reachCellKeys.has(key);
+          const isReachCell = celebrationReady && reachCellKeys.has(key);
+          const isBingoCell = celebrationReady && bingoCellKeys.has(key);
+          // 見た目の優先順位: フラッシュ中 > ビンゴライン > 通常の当選マス > 未当選マス
+          // （リーチ用のring/glowはisReachCellの場合に追加で重ねる）
           return (
             <div
               key={key}
               className={`flex aspect-square items-center justify-center rounded text-lg font-semibold tabular-nums ${
                 isFlashing
                   ? "animate-bingo-flash text-black"
-                  : isMarked
-                    ? "bg-foreground text-background"
-                    : "border border-black/15 dark:border-white/20"
+                  : isBingoCell
+                    ? "bingo-highlight animate-reach-pop"
+                    : isMarked
+                      ? "bg-foreground text-background"
+                      : "border border-black/15 dark:border-white/20"
               } ${isReachCell ? "reach-highlight animate-reach-pop" : ""}`}
             >
               {value === null ? "FREE" : value}
