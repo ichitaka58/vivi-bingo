@@ -67,10 +67,16 @@ export default function BoardPage() {
   const [game, setGame] = useState<GameSummary | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [flashingCells, setFlashingCells] = useState<Set<string>>(new Set());
   const historyScrollRef = useRef<HTMLDivElement | null>(null);
+  const previousMarkedRef = useRef<BoardMarked | null>(null);
+  const flashTimeoutsRef = useRef<Set<ReturnType<typeof setTimeout>>>(
+    new Set()
+  );
 
   useEffect(() => {
     let cancelled = false;
+    const flashTimeouts = flashTimeoutsRef.current;
 
     async function refresh(): Promise<string | undefined> {
       const result = await fetchBoardAndGame(boardId);
@@ -82,6 +88,41 @@ export default function BoardPage() {
         setLoading(false);
         return undefined;
       }
+
+      const prevMarked = previousMarkedRef.current;
+      if (prevMarked) {
+        const newlyMarkedKeys: string[] = [];
+        for (let col = 0; col < BOARD_SIZE; col++) {
+          for (let row = 0; row < BOARD_SIZE; row++) {
+            if (result.board.marked[col][row] && !prevMarked[col][row]) {
+              newlyMarkedKeys.push(`${col}-${row}`);
+            }
+          }
+        }
+        if (newlyMarkedKeys.length > 0) {
+          setFlashingCells((prev) => {
+            const next = new Set(prev);
+            newlyMarkedKeys.forEach((key) => next.add(key));
+            return next;
+          });
+          newlyMarkedKeys.forEach((key) => {
+            const timeoutId = setTimeout(() => {
+              flashTimeouts.delete(timeoutId);
+              if (cancelled) {
+                return;
+              }
+              setFlashingCells((prev) => {
+                const next = new Set(prev);
+                next.delete(key);
+                return next;
+              });
+            }, 3000);
+            flashTimeouts.add(timeoutId);
+          });
+        }
+      }
+      previousMarkedRef.current = result.board.marked;
+
       setBoard(result.board);
       setGame(result.game);
       setLoading(false);
@@ -89,6 +130,8 @@ export default function BoardPage() {
     }
 
     async function run() {
+      previousMarkedRef.current = null;
+      setFlashingCells(new Set());
       const gameId = await refresh();
       if (cancelled || !gameId) {
         return;
@@ -141,6 +184,8 @@ export default function BoardPage() {
     const cleanupPromise = run();
     return () => {
       cancelled = true;
+      flashTimeouts.forEach((timeoutId) => clearTimeout(timeoutId));
+      flashTimeouts.clear();
       cleanupPromise.then((cleanup) => cleanup?.());
     };
   }, [boardId]);
@@ -231,21 +276,25 @@ export default function BoardPage() {
         {COLUMN_LABELS.map((label) => (
           <div
             key={label}
-            className="flex h-10 items-center justify-center font-semibold"
+            className="flex aspect-square items-center justify-center text-4xl font-bold"
           >
             {label}
           </div>
         ))}
         {cells.map(({ col, row }) => {
           const value = board.numbers[col][row];
+          const key = `${col}-${row}`;
+          const isFlashing = flashingCells.has(key);
           const isMarked = board.marked[col][row];
           return (
             <div
-              key={`${col}-${row}`}
-              className={`flex aspect-square items-center justify-center rounded text-sm font-semibold tabular-nums ${
-                isMarked
-                  ? "bg-foreground text-background"
-                  : "border border-black/15 dark:border-white/20"
+              key={key}
+              className={`flex aspect-square items-center justify-center rounded text-lg font-semibold tabular-nums ${
+                isFlashing
+                  ? "animate-bingo-flash text-black"
+                  : isMarked
+                    ? "bg-foreground text-background"
+                    : "border border-black/15 dark:border-white/20"
               }`}
             >
               {value === null ? "FREE" : value}
