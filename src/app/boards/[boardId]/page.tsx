@@ -3,6 +3,7 @@
 import { useEffect, useRef, useState } from "react";
 import { useParams } from "next/navigation";
 import { supabase } from "@/lib/supabase";
+import { judgeBingo } from "@/lib/bingo-judge";
 
 type GameStatus = "draft" | "open" | "playing" | "finished";
 type BoardNumbers = (number | null)[][];
@@ -223,6 +224,14 @@ export default function BoardPage() {
     }
   }
 
+  // 抽選直後のマスはまず当選フラッシュを最後まで見せてから、リーチ演出を出す
+  const reachVisible = flashingCells.size === 0;
+  const reachCellKeys = new Set(
+    judgeBingo(board.marked).reachLines.flatMap((line) =>
+      line.map(({ col, row }) => `${col}-${row}`)
+    )
+  );
+
   return (
     <div className="mx-auto flex w-full max-w-md flex-1 flex-col gap-6 px-4 py-10">
       <div>
@@ -236,10 +245,13 @@ export default function BoardPage() {
         </p>
       )}
 
-      {(board.isReach || board.isBingo) && (
-        <p className="text-center text-sm font-semibold">
-          {board.isBingo ? "ビンゴ！" : "リーチ！"}
+      {board.isReach && reachVisible && (
+        <p className="animate-reach-pop text-center text-2xl font-bold text-[#d97706]">
+          リーチ！
         </p>
+      )}
+      {board.isBingo && (
+        <p className="text-center text-2xl font-bold">ビンゴ！</p>
       )}
 
       <div className="rounded-lg border border-black/10 p-4 text-center dark:border-white/15">
@@ -286,6 +298,7 @@ export default function BoardPage() {
           const key = `${col}-${row}`;
           const isFlashing = flashingCells.has(key);
           const isMarked = board.marked[col][row];
+          const isReachCell = reachVisible && reachCellKeys.has(key);
           return (
             <div
               key={key}
@@ -295,7 +308,7 @@ export default function BoardPage() {
                   : isMarked
                     ? "bg-foreground text-background"
                     : "border border-black/15 dark:border-white/20"
-              }`}
+              } ${isReachCell ? "reach-highlight animate-reach-pop" : ""}`}
             >
               {value === null ? "FREE" : value}
             </div>
