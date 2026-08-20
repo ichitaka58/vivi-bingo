@@ -26,6 +26,9 @@
   --color-matsuri-border-gold: #ffe8b8;
   --color-matsuri-border-pink: #ffedf2;
   --color-matsuri-border-token: #ffd9e4;
+  --color-matsuri-red-bright: #ff4c5f;
+  --color-matsuri-red-darkest: #9e0f1b;
+  --color-matsuri-red-ink: #7a0d16;
   --font-heading: var(--font-baloo);
   --font-display: var(--font-fredoka);
   --font-round: var(--font-nunito);
@@ -182,4 +185,142 @@ body {
   font-weight: 800;
   font-size: 11px;
   letter-spacing: -0.02em;
+}
+
+/* リーチ演出: 抽選履歴とボードの継ぎ目に右から飛び込むバナー→点滅バッジ */
+.board-reach-zone {
+  position: absolute;
+  left: 50%;
+  top: -40px;
+  width: 0;
+  height: 0;
+  z-index: 20;
+}
+
+.board-reach-banner {
+  position: absolute;
+  left: 0;
+  top: 0;
+  transform: translateX(-50%);
+  display: flex;
+  align-items: center;
+  background: linear-gradient(
+    160deg,
+    var(--color-matsuri-red-bright) 0%,
+    var(--color-matsuri-red) 45%,
+    var(--color-matsuri-red-darkest) 100%
+  );
+  padding: 9px 24px;
+  border-radius: 10px;
+  box-shadow:
+    0 10px 0 -2px rgba(0, 0, 0, 0.12),
+    0 16px 22px rgba(120, 10, 18, 0.45),
+    inset 0 2px 0 rgba(255, 255, 255, 0.35),
+    inset 0 -4px 6px rgba(0, 0, 0, 0.28);
+  opacity: 0;
+  animation:
+    board-fly-in 0.9s cubic-bezier(0.34, 1.56, 0.64, 1) forwards,
+    board-hold-fade 4.1s 0.9s ease-in forwards;
+}
+
+.board-reach-banner-text {
+  font-family: var(--font-display);
+  font-weight: 700;
+  font-size: 25px;
+  color: var(--color-matsuri-cream-soft);
+  -webkit-text-stroke: 1.4px var(--color-matsuri-red-ink);
+  text-shadow:
+    0 3px 0 var(--color-matsuri-red-ink),
+    0 6px 8px rgba(0, 0, 0, 0.25);
+  transform: rotate(-2deg);
+  white-space: nowrap;
+}
+
+@keyframes board-fly-in {
+  0% {
+    opacity: 0;
+    transform:
+      translateX(-50%) translateX(230%) perspective(500px) rotateY(-32deg)
+        rotate(9deg);
+  }
+  70% {
+    opacity: 1;
+    transform:
+      translateX(-50%) translateX(-3%) perspective(500px) rotateY(6deg)
+        rotate(-4deg);
+  }
+  100% {
+    opacity: 1;
+    transform:
+      translateX(-50%) translateX(0%) perspective(500px) rotateY(0deg)
+        rotate(-2deg);
+  }
+}
+
+@keyframes board-hold-fade {
+  0% {
+    opacity: 1;
+  }
+  73% {
+    opacity: 1;
+  }
+  85% {
+    opacity: 0;
+  }
+  100% {
+    opacity: 0;
+  }
+}
+
+.board-reach-badge {
+  position: absolute;
+  left: 0;
+  top: 6px;
+  transform: translateX(-50%) scale(0.85);
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  background: #ffffff;
+  border: 2px solid var(--color-matsuri-red);
+  color: var(--color-matsuri-red-deep);
+  font-family: var(--font-heading);
+  font-weight: 700;
+  font-size: 11px;
+  letter-spacing: 0.04em;
+  padding: 4px 12px 4px 8px;
+  border-radius: 999px;
+  box-shadow: 0 3px 6px rgba(177, 18, 31, 0.2);
+  opacity: 0;
+  white-space: nowrap;
+  animation:
+    board-badge-fade-in 0.4s 4.3s forwards,
+    board-badge-blink 3s 4.7s infinite;
+}
+
+.board-reach-badge-dot {
+  width: 7px;
+  height: 7px;
+  border-radius: 999px;
+  background: var(--color-matsuri-red);
+}
+
+@keyframes board-badge-fade-in {
+  from {
+    opacity: 0;
+    transform: translateX(-50%) scale(0.8);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(-50%) scale(1);
+  }
+}
+
+@keyframes board-badge-blink {
+  0%,
+  100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.35;
+  }
 }

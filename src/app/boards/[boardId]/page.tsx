@@ -349,11 +349,6 @@ export default function BoardPage() {
           </p>
         )}
 
-        {board.isReach && celebrationReady && (
-          <p className="animate-reach-pop text-center font-heading text-2xl font-bold text-matsuri-red">
-            リーチ！
-          </p>
-        )}
         {board.isBingo && celebrationReady && (
           <p className="animate-reach-pop text-center font-heading text-3xl font-bold text-matsuri-red">
             ビンゴ！
@@ -386,47 +381,60 @@ export default function BoardPage() {
           </div>
         )}
 
-        <div className="mt-2 grid grid-cols-5 gap-1.5">
-          {COLUMN_LABELS.map((label, index) => (
-            <div
-              key={label}
-              className="flex items-end justify-center pb-1 font-heading text-4xl leading-none font-extrabold"
-              style={{ color: COLUMN_COLORS[index] }}
-            >
-              {label}
-            </div>
-          ))}
-          {cells.map(({ col, row }) => {
-            const value = board.numbers[col][row];
-            const key = `${col}-${row}`;
-            const isFlashing = flashingCells.has(key);
-            const isMarked = board.marked[col][row];
-            const isFree = value === null;
-            const isReachCell = celebrationReady && reachCellKeys.has(key);
-            const isBingoCell = celebrationReady && bingoCellKeys.has(key);
-            // トークンの見た目の優先順位: フラッシュ中 > ビンゴライン > 通常の当選/FREE > 未当選
-            const tokenClass = isFlashing
-              ? "board-token animate-bingo-flash"
-              : isBingoCell
-                ? isFree
-                  ? "board-token board-token-free-bingo"
-                  : "board-token board-token-bingo"
-                : isMarked
-                  ? isFree
-                    ? "board-token board-token-free"
-                    : "board-token board-token-marked"
-                  : "board-token";
-            return (
-              <div
-                key={key}
-                className={`board-cell ${isReachCell ? "board-cell-reach" : ""} ${
-                  isBingoCell ? "board-cell-bingo" : ""
-                } ${isReachCell || isBingoCell ? "animate-reach-pop" : ""}`}
-              >
-                <span className={tokenClass}>{isFree ? "FREE" : value}</span>
+        <div className="relative mt-12">
+          {board.isReach && celebrationReady && (
+            <div className="board-reach-zone">
+              <div className="board-reach-banner">
+                <span className="board-reach-banner-text">リーチ!</span>
               </div>
-            );
-          })}
+              <div className="board-reach-badge">
+                <span className="board-reach-badge-dot" />
+                リーチ中
+              </div>
+            </div>
+          )}
+          <div className="grid grid-cols-5 gap-1.5">
+            {COLUMN_LABELS.map((label, index) => (
+              <div
+                key={label}
+                className="flex items-end justify-center pb-1 font-heading text-4xl leading-none font-extrabold"
+                style={{ color: COLUMN_COLORS[index] }}
+              >
+                {label}
+              </div>
+            ))}
+            {cells.map(({ col, row }) => {
+              const value = board.numbers[col][row];
+              const key = `${col}-${row}`;
+              const isFlashing = flashingCells.has(key);
+              const isMarked = board.marked[col][row];
+              const isFree = value === null;
+              const isReachCell = celebrationReady && reachCellKeys.has(key);
+              const isBingoCell = celebrationReady && bingoCellKeys.has(key);
+              // トークンの見た目の優先順位: フラッシュ中 > ビンゴライン > 通常の当選/FREE > 未当選
+              const tokenClass = isFlashing
+                ? "board-token animate-bingo-flash"
+                : isBingoCell
+                  ? isFree
+                    ? "board-token board-token-free-bingo"
+                    : "board-token board-token-bingo"
+                  : isMarked
+                    ? isFree
+                      ? "board-token board-token-free"
+                      : "board-token board-token-marked"
+                    : "board-token";
+              return (
+                <div
+                  key={key}
+                  className={`board-cell ${isReachCell ? "board-cell-reach" : ""} ${
+                    isBingoCell ? "board-cell-bingo" : ""
+                  } ${isReachCell || isBingoCell ? "animate-reach-pop" : ""}`}
+                >
+                  <span className={tokenClass}>{isFree ? "FREE" : value}</span>
+                </div>
+              );
+            })}
+          </div>
         </div>
       </div>
     </div>
