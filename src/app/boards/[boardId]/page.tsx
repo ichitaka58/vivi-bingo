@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState, type CSSProperties } from "react";
 import { useParams } from "next/navigation";
 import { supabase } from "@/lib/supabase";
 import { judgeBingo } from "@/lib/bingo-judge";
@@ -73,6 +73,26 @@ const FISH: FishConfig[] = [
 
 const FISH_PATH =
   "M2,16 C2,8 14,4 26,4 C40,4 50,10 50,16 C50,22 40,28 26,28 C14,28 2,24 2,16 Z M50,16 L62,6 L62,26 Z";
+
+// ビンゴ演出: 中央のBINGO!!文字の周りに飛び散る紙吹雪風の粒
+type SparkConfig = {
+  tx: number;
+  ty: number;
+  color: string;
+  delay: string;
+  shape: "dot" | "chip";
+};
+
+const BINGO_SPARKS: SparkConfig[] = [
+  { tx: 0, ty: -100, color: "#FFD700", delay: "0.04s", shape: "dot" },
+  { tx: 72, ty: -72, color: "#E11D2E", delay: "0.08s", shape: "chip" },
+  { tx: 100, ty: 0, color: "#FFC93C", delay: "0.02s", shape: "dot" },
+  { tx: 72, ty: 72, color: "#2F6FED", delay: "0.10s", shape: "chip" },
+  { tx: 0, ty: 100, color: "#E11D2E", delay: "0.06s", shape: "dot" },
+  { tx: -72, ty: 72, color: "#FFD700", delay: "0.12s", shape: "chip" },
+  { tx: -100, ty: 0, color: "#FFC93C", delay: "0.03s", shape: "dot" },
+  { tx: -72, ty: -72, color: "#E11D2E", delay: "0.09s", shape: "chip" },
+];
 
 async function fetchBoardAndGame(
   boardId: string
@@ -381,12 +401,6 @@ export default function BoardPage() {
           </p>
         )}
 
-        {board.isBingo && celebrationReady && (
-          <p className="animate-reach-pop text-center font-heading text-3xl font-bold text-matsuri-red">
-            ビンゴ！
-          </p>
-        )}
-
         {game.drawHistory.length > 0 && (
           <div className="relative rounded-2xl border-2 border-matsuri-border-gold bg-white pt-6 pr-3 pb-3 pl-3">
             <span className="absolute top-2 left-3.5 font-heading text-[10px] font-bold tracking-widest text-matsuri-label">
@@ -423,6 +437,27 @@ export default function BoardPage() {
                 <span className="board-reach-badge-dot" />
                 リーチ中
               </div>
+            </div>
+          )}
+          {board.isBingo && celebrationReady && (
+            <div className="board-bingo-burst">
+              <div className="board-bingo-spark-field">
+                {BINGO_SPARKS.map((spark, index) => (
+                  <div
+                    key={index}
+                    className={`board-bingo-spark ${spark.shape}`}
+                    style={
+                      {
+                        "--tx": `${spark.tx}px`,
+                        "--ty": `${spark.ty}px`,
+                        background: spark.color,
+                        animationDelay: spark.delay,
+                      } as CSSProperties
+                    }
+                  />
+                ))}
+              </div>
+              <span className="board-bingo-text">BINGO!!</span>
             </div>
           )}
           <div className="relative overflow-hidden rounded-xl">
