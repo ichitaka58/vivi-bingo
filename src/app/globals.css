@@ -462,3 +462,26 @@ body {
     transform: scale(1.045) rotate(0.5deg);
   }
 }
+
+/* 赤グラデーションの主要ボタン（参加画面の送信ボタン等）。押し込み感を出す */
+.matsuri-primary-btn {
+  cursor: pointer;
+  background: linear-gradient(
+    135deg,
+    var(--color-matsuri-red),
+    var(--color-matsuri-red-deep)
+  );
+  box-shadow: 0 6px 14px rgba(177, 18, 31, 0.35);
+  transition:
+    transform 0.08s ease,
+    box-shadow 0.08s ease;
+}
+
+.matsuri-primary-btn:active:not(:disabled) {
+  transform: translateY(2px);
+  box-shadow: 0 2px 6px rgba(177, 18, 31, 0.3);
+}
+
+.matsuri-primary-btn:disabled {
+  cursor: not-allowed;
+}
