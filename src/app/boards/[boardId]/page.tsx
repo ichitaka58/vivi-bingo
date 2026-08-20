@@ -33,6 +33,13 @@ type GameSummary = {
 };
 
 const COLUMN_LABELS = ["B", "I", "N", "G", "O"];
+const COLUMN_COLORS = [
+  "var(--color-matsuri-red)",
+  "var(--color-matsuri-gold)",
+  "var(--color-matsuri-navy)",
+  "var(--color-matsuri-gold)",
+  "var(--color-matsuri-red)",
+];
 const BOARD_SIZE = 5;
 
 async function fetchBoardAndGame(
@@ -233,16 +240,16 @@ export default function BoardPage() {
 
   if (loading) {
     return (
-      <div className="flex flex-1 items-center justify-center px-4 py-16">
-        <p className="text-sm text-zinc-500">読み込み中...</p>
+      <div className="flex flex-1 items-center justify-center bg-matsuri-cream px-4 py-16 font-round">
+        <p className="text-sm text-matsuri-purple">読み込み中...</p>
       </div>
     );
   }
 
   if (!board || !game) {
     return (
-      <div className="flex flex-1 items-center justify-center px-4 py-16">
-        <p className="text-sm text-red-600">
+      <div className="flex flex-1 items-center justify-center bg-matsuri-cream px-4 py-16 font-round">
+        <p className="text-sm text-matsuri-red">
           {error ?? "ボードが見つかりません。"}
         </p>
       </div>
@@ -273,94 +280,154 @@ export default function BoardPage() {
   );
 
   return (
-    <div className="mx-auto flex w-full max-w-md flex-1 flex-col gap-6 px-4 py-10">
-      <div>
-        <h1 className="text-2xl font-semibold">{game.title}</h1>
-        <p className="text-sm text-zinc-500">{board.userName} さんのボード</p>
-      </div>
+    <div className="relative flex w-full flex-1 flex-col overflow-hidden bg-matsuri-cream font-round text-matsuri-navy">
+      <svg
+        className="pointer-events-none absolute -top-3 -right-2 z-0"
+        width="90"
+        height="90"
+        viewBox="0 0 90 90"
+      >
+        <circle cx="45" cy="45" r="30" fill="#E11D2E" opacity="0.18" />
+      </svg>
+      <svg
+        className="pointer-events-none absolute top-10 -left-4 z-0"
+        width="50"
+        height="50"
+        viewBox="0 0 50 50"
+      >
+        <polygon points="25,2 48,45 2,45" fill="#2F6FED" opacity="0.12" />
+      </svg>
+      <svg
+        className="pointer-events-none absolute top-40 right-2 z-0"
+        width="26"
+        height="26"
+        viewBox="0 0 26 26"
+      >
+        <circle cx="13" cy="13" r="13" fill="#FF3D81" opacity="0.22" />
+      </svg>
+      <svg
+        className="pointer-events-none absolute bottom-28 left-1 z-0"
+        width="34"
+        height="34"
+        viewBox="0 0 34 34"
+      >
+        <rect
+          x="4"
+          y="4"
+          width="26"
+          height="26"
+          rx="8"
+          fill="#FFC93C"
+          opacity="0.2"
+          transform="rotate(18 17 17)"
+        />
+      </svg>
 
-      {game.status === "finished" && (
-        <p className="rounded border border-black/10 bg-black/5 px-3 py-2 text-sm dark:border-white/15 dark:bg-white/5">
-          このゲームは終了しました。
-        </p>
-      )}
+      <div className="relative z-10 mx-auto flex w-full max-w-md flex-1 flex-col gap-6 px-5 py-7">
+        <div className="flex flex-col gap-1.5">
+          <span className="inline-flex w-fit rounded-full bg-matsuri-red px-3 py-1 font-heading text-xs font-bold tracking-wide text-matsuri-cream-soft">
+            BINGO PARTY
+          </span>
+          <h1 className="mt-1 font-heading text-2xl leading-tight font-extrabold">
+            {game.title}
+          </h1>
+          <div
+            className="mt-2 h-1.5 w-16 rounded-full"
+            style={{
+              background:
+                "linear-gradient(90deg, #E11D2E, #FFC93C, #E11D2E)",
+            }}
+          />
+          <p className="mt-3 text-sm font-bold text-matsuri-purple">
+            {board.userName} さんのボード
+          </p>
+        </div>
 
-      {board.isReach && celebrationReady && (
-        <p className="animate-reach-pop text-center text-2xl font-bold text-[#d97706]">
-          リーチ！
-        </p>
-      )}
-      {board.isBingo && celebrationReady && (
-        <p className="animate-reach-pop text-center text-3xl font-bold text-[#d97706]">
-          ビンゴ！
-        </p>
-      )}
+        {game.status === "finished" && (
+          <p className="rounded-lg border-2 border-matsuri-border-gold bg-white px-3 py-2 text-sm">
+            このゲームは終了しました。
+          </p>
+        )}
 
-      <div className="rounded-lg border border-black/10 p-4 text-center dark:border-white/15">
-        <p className="text-sm text-zinc-500">直近の抽選番号</p>
-        <p className="text-5xl font-bold tabular-nums">
-          {game.lastDrawNumber ?? "-"}
-        </p>
-      </div>
+        {board.isReach && celebrationReady && (
+          <p className="animate-reach-pop text-center font-heading text-2xl font-bold text-matsuri-red">
+            リーチ！
+          </p>
+        )}
+        {board.isBingo && celebrationReady && (
+          <p className="animate-reach-pop text-center font-heading text-3xl font-bold text-matsuri-red">
+            ビンゴ！
+          </p>
+        )}
 
-      {game.drawHistory.length > 0 && (
-        <div
-          ref={historyScrollRef}
-          className="flex gap-2 overflow-x-auto rounded-lg border border-black/10 p-3 dark:border-white/15"
-        >
-          {game.drawHistory.map((draw, index) => {
-            const isLatest = index === game.drawHistory.length - 1;
+        {game.drawHistory.length > 0 && (
+          <div className="relative rounded-2xl border-2 border-matsuri-border-gold bg-white pt-6 pr-3 pb-3 pl-3">
+            <span className="absolute top-2 left-3.5 font-heading text-[10px] font-bold tracking-widest text-matsuri-label">
+              抽選番号
+            </span>
+            <div
+              ref={historyScrollRef}
+              className="flex items-center gap-2.5 overflow-x-auto py-1.5"
+            >
+              {game.drawHistory.map((draw, index) => {
+                const isLatest = index === game.drawHistory.length - 1;
+                return (
+                  <div
+                    key={draw.number}
+                    className={
+                      isLatest ? "board-chip board-chip-latest" : "board-chip"
+                    }
+                  >
+                    {draw.number}
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+        )}
+
+        <div className="mt-2 grid grid-cols-5 gap-1.5">
+          {COLUMN_LABELS.map((label, index) => (
+            <div
+              key={label}
+              className="flex items-end justify-center pb-1 font-heading text-4xl leading-none font-extrabold"
+              style={{ color: COLUMN_COLORS[index] }}
+            >
+              {label}
+            </div>
+          ))}
+          {cells.map(({ col, row }) => {
+            const value = board.numbers[col][row];
+            const key = `${col}-${row}`;
+            const isFlashing = flashingCells.has(key);
+            const isMarked = board.marked[col][row];
+            const isFree = value === null;
+            const isReachCell = celebrationReady && reachCellKeys.has(key);
+            const isBingoCell = celebrationReady && bingoCellKeys.has(key);
+            // トークンの見た目の優先順位: フラッシュ中 > ビンゴライン > 通常の当選/FREE > 未当選
+            const tokenClass = isFlashing
+              ? "board-token animate-bingo-flash"
+              : isBingoCell
+                ? isFree
+                  ? "board-token board-token-free-bingo"
+                  : "board-token board-token-bingo"
+                : isMarked
+                  ? isFree
+                    ? "board-token board-token-free"
+                    : "board-token board-token-marked"
+                  : "board-token";
             return (
               <div
-                key={draw.number}
-                className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-full text-sm font-semibold tabular-nums ${
-                  isLatest
-                    ? "bg-foreground text-background"
-                    : "bg-black/5 dark:bg-white/10"
-                }`}
+                key={key}
+                className={`board-cell ${isReachCell ? "board-cell-reach" : ""} ${
+                  isBingoCell ? "board-cell-bingo" : ""
+                } ${isReachCell || isBingoCell ? "animate-reach-pop" : ""}`}
               >
-                {draw.number}
+                <span className={tokenClass}>{isFree ? "FREE" : value}</span>
               </div>
             );
           })}
         </div>
-      )}
-
-      <div className="grid grid-cols-5 gap-1">
-        {COLUMN_LABELS.map((label) => (
-          <div
-            key={label}
-            className="flex aspect-square items-center justify-center text-4xl font-bold"
-          >
-            {label}
-          </div>
-        ))}
-        {cells.map(({ col, row }) => {
-          const value = board.numbers[col][row];
-          const key = `${col}-${row}`;
-          const isFlashing = flashingCells.has(key);
-          const isMarked = board.marked[col][row];
-          const isReachCell = celebrationReady && reachCellKeys.has(key);
-          const isBingoCell = celebrationReady && bingoCellKeys.has(key);
-          // 見た目の優先順位: フラッシュ中 > ビンゴライン > 通常の当選マス > 未当選マス
-          // （リーチ用のring/glowはisReachCellの場合に追加で重ねる）
-          return (
-            <div
-              key={key}
-              className={`flex aspect-square items-center justify-center rounded text-lg font-semibold tabular-nums ${
-                isFlashing
-                  ? "animate-bingo-flash text-black"
-                  : isBingoCell
-                    ? "bingo-highlight animate-reach-pop"
-                    : isMarked
-                      ? "bg-foreground text-background"
-                      : "border border-black/15 dark:border-white/20"
-              } ${isReachCell ? "reach-highlight animate-reach-pop" : ""}`}
-            >
-              {value === null ? "FREE" : value}
-            </div>
-          );
-        })}
       </div>
     </div>
   );
