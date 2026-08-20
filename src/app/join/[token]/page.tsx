@@ -88,16 +88,16 @@ export default function JoinPage() {
 
   if (loading) {
     return (
-      <div className="flex flex-1 items-center justify-center px-4 py-16">
-        <p className="text-sm text-zinc-500">読み込み中...</p>
+      <div className="flex flex-1 items-center justify-center bg-matsuri-cream px-4 py-16 font-round">
+        <p className="text-sm text-matsuri-purple">読み込み中...</p>
       </div>
     );
   }
 
   if (!game) {
     return (
-      <div className="flex flex-1 items-center justify-center px-4 py-16">
-        <p className="text-sm text-red-600">
+      <div className="flex flex-1 items-center justify-center bg-matsuri-cream px-4 py-16 font-round">
+        <p className="text-sm text-matsuri-red">
           {error ?? "このゲームには参加できません。"}
         </p>
       </div>
@@ -105,18 +105,76 @@ export default function JoinPage() {
   }
 
   return (
-    <div className="flex flex-1 flex-col items-center justify-center px-4 py-16">
-      <form
-        onSubmit={handleSubmit}
-        className="w-full max-w-md space-y-4 rounded-lg border border-black/10 p-6 dark:border-white/15"
+    <div className="relative flex w-full flex-1 flex-col overflow-hidden bg-matsuri-cream font-round text-matsuri-navy">
+      <svg
+        className="pointer-events-none absolute -top-3 -right-2 z-0"
+        width="90"
+        height="90"
+        viewBox="0 0 90 90"
       >
-        <h1 className="text-xl font-semibold">{game.title}</h1>
-        <p className="text-sm text-zinc-500">
-          ユーザー名を入力してBingoボードを発行してください。
-        </p>
+        <circle cx="45" cy="45" r="30" fill="#E11D2E" opacity="0.18" />
+      </svg>
+      <svg
+        className="pointer-events-none absolute top-10 -left-4 z-0"
+        width="50"
+        height="50"
+        viewBox="0 0 50 50"
+      >
+        <polygon points="25,2 48,45 2,45" fill="#2F6FED" opacity="0.12" />
+      </svg>
+      <svg
+        className="pointer-events-none absolute top-40 right-2 z-0"
+        width="26"
+        height="26"
+        viewBox="0 0 26 26"
+      >
+        <circle cx="13" cy="13" r="13" fill="#FF3D81" opacity="0.22" />
+      </svg>
+      <svg
+        className="pointer-events-none absolute bottom-28 left-1 z-0"
+        width="34"
+        height="34"
+        viewBox="0 0 34 34"
+      >
+        <rect
+          x="4"
+          y="4"
+          width="26"
+          height="26"
+          rx="8"
+          fill="#FFC93C"
+          opacity="0.2"
+          transform="rotate(18 17 17)"
+        />
+      </svg>
 
-        <div className="space-y-1">
-          <label htmlFor="userName" className="block text-sm font-medium">
+      <div className="relative z-10 mx-auto flex w-full max-w-md flex-1 flex-col justify-center gap-6 px-5 py-16">
+        <div className="flex flex-col gap-1.5">
+          <span className="inline-flex w-fit rounded-full bg-matsuri-red px-3 py-1 font-heading text-xs font-bold tracking-wide text-matsuri-cream-soft">
+            BINGO PARTY
+          </span>
+          <h1 className="mt-1 font-heading text-3xl leading-tight font-extrabold">
+            {game.title}
+          </h1>
+          <div
+            className="mt-2 h-1.5 w-16 rounded-full"
+            style={{
+              background: "linear-gradient(90deg, #E11D2E, #FFC93C, #E11D2E)",
+            }}
+          />
+          <p className="mt-3 text-sm font-bold text-matsuri-purple">
+            ユーザー名を入力してBingoボードを発行してください。
+          </p>
+        </div>
+
+        <form
+          onSubmit={handleSubmit}
+          className="flex flex-col gap-1.5 rounded-2xl border-2 border-matsuri-border-gold bg-white p-6"
+        >
+          <label
+            htmlFor="userName"
+            className="font-heading text-sm font-bold"
+          >
             ユーザー名
           </label>
           <input
@@ -125,20 +183,22 @@ export default function JoinPage() {
             required
             value={userName}
             onChange={(e) => setUserName(e.target.value)}
-            className="w-full rounded border border-black/15 px-3 py-2 dark:border-white/20 dark:bg-transparent"
+            className="w-full rounded-xl border-2 border-matsuri-border-token px-4 py-3 text-[15px] font-bold text-matsuri-navy focus:outline-none"
           />
-        </div>
 
-        {error && <p className="text-sm text-red-600">{error}</p>}
+          {error && (
+            <p className="mt-1 text-sm font-bold text-matsuri-red">{error}</p>
+          )}
 
-        <button
-          type="submit"
-          disabled={submitting}
-          className="w-full rounded bg-foreground px-4 py-2 text-background disabled:opacity-50"
-        >
-          {submitting ? "発行中..." : "ボードを発行"}
-        </button>
-      </form>
+          <button
+            type="submit"
+            disabled={submitting}
+            className="matsuri-primary-btn mt-4 w-full rounded-full py-3.5 font-heading text-[17px] font-bold text-matsuri-cream-soft disabled:opacity-50"
+          >
+            {submitting ? "発行中..." : "ボードを発行"}
+          </button>
+        </form>
+      </div>
     </div>
   );
 }
