@@ -12,6 +12,23 @@
   --font-mono: var(--font-geist-mono);
   --animate-bingo-flash: bingo-flash 1.4s ease-in-out infinite;
   --animate-reach-pop: reach-pop 1s ease-in-out;
+
+  /* 参加者画面（お祭り/縁日テーマ）の配色・フォント */
+  --color-matsuri-cream: #fffbf2;
+  --color-matsuri-cream-soft: #fff6d8;
+  --color-matsuri-red: #e11d2e;
+  --color-matsuri-red-deep: #b3121f;
+  --color-matsuri-gold: #ffc93c;
+  --color-matsuri-gold-bright: #ffd700;
+  --color-matsuri-navy: #1f2a44;
+  --color-matsuri-purple: #6b5a8a;
+  --color-matsuri-label: #c8342a;
+  --color-matsuri-border-gold: #ffe8b8;
+  --color-matsuri-border-pink: #ffedf2;
+  --color-matsuri-border-token: #ffd9e4;
+  --font-heading: var(--font-baloo);
+  --font-display: var(--font-fredoka);
+  --font-round: var(--font-nunito);
 }
 
 @keyframes reach-pop {
@@ -56,14 +73,113 @@ body {
   font-family: Arial, Helvetica, sans-serif;
 }
 
-.reach-highlight {
-  box-shadow:
-    0 0 0 3px #ffd700,
-    0 0 10px 2px rgba(255, 215, 0, 0.55);
+/* 参加者ボード: 抽選履歴チップ */
+.board-chip {
+  flex-shrink: 0;
+  width: 44px;
+  height: 44px;
+  border-radius: 999px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-family: var(--font-heading);
+  font-weight: 700;
+  font-size: 16px;
+  background: var(--color-matsuri-cream-soft);
+  color: var(--color-matsuri-navy);
+  border: 2px solid var(--color-matsuri-border-gold);
 }
 
-.bingo-highlight {
+.board-chip-latest {
+  width: 52px;
+  height: 52px;
+  font-size: 19px;
+  background: linear-gradient(
+    135deg,
+    var(--color-matsuri-red),
+    var(--color-matsuri-red-deep)
+  );
+  color: var(--color-matsuri-cream-soft);
+  border: none;
+  box-shadow: 0 3px 6px rgba(177, 18, 31, 0.35);
+}
+
+/* 参加者ボード: マス（セル）とその中の丸トークン */
+.board-cell {
+  aspect-ratio: 1;
+  border-radius: 10px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: #ffffff;
+  border: 2px solid var(--color-matsuri-border-pink);
+}
+
+.board-cell-reach {
+  box-shadow:
+    0 0 0 3px var(--color-matsuri-gold-bright),
+    0 0 12px 3px rgba(255, 215, 0, 0.6);
+}
+
+.board-cell-bingo {
+  box-shadow: 0 0 14px 3px rgba(255, 180, 0, 0.55);
+}
+
+.board-token {
+  width: 76%;
+  height: 76%;
+  border-radius: 999px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-family: var(--font-round);
+  font-weight: 800;
+  font-size: 21px;
+  background: #ffffff;
+  color: var(--color-matsuri-navy);
+  border: 2px solid var(--color-matsuri-border-token);
+}
+
+.board-token-marked {
+  background: linear-gradient(
+    135deg,
+    var(--color-matsuri-red),
+    var(--color-matsuri-red-deep)
+  );
+  color: var(--color-matsuri-cream-soft);
+  border: none;
+  box-shadow: 0 3px 6px rgba(177, 18, 31, 0.35);
+}
+
+.board-token-free {
+  background: linear-gradient(
+    135deg,
+    var(--color-matsuri-red),
+    var(--color-matsuri-gold)
+  );
+  color: var(--color-matsuri-cream-soft);
+  border: none;
+  box-shadow: 0 3px 6px rgba(177, 18, 31, 0.25);
+  font-family: var(--font-heading);
+  font-weight: 800;
+  font-size: 11px;
+  letter-spacing: -0.02em;
+}
+
+.board-token-bingo {
   background: linear-gradient(135deg, #ffd700, #ffb400);
-  color: #171717;
-  box-shadow: 0 0 14px 3px rgba(255, 180, 0, 0.6);
+  color: #7a5b00;
+  border: none;
+  box-shadow: 0 3px 8px rgba(255, 180, 0, 0.5);
+}
+
+.board-token-free-bingo {
+  background: linear-gradient(135deg, #ffd700, #ffb400);
+  color: #7a5b00;
+  border: none;
+  box-shadow: 0 3px 8px rgba(255, 180, 0, 0.5);
+  font-family: var(--font-heading);
+  font-weight: 800;
+  font-size: 11px;
+  letter-spacing: -0.02em;
 }
