@@ -324,3 +324,35 @@ body {
     opacity: 0.35;
   }
 }
+
+/* リーチ中の演出: 縁日の金魚すくいモチーフの金魚がボード上を右から左へ横切る */
+.board-fish-layer {
+  position: absolute;
+  inset: 0;
+  z-index: 3;
+  pointer-events: none;
+}
+
+.board-fish {
+  position: absolute;
+  right: 0;
+  opacity: 0;
+  animation: board-fish-swim 1.6s ease-in-out both;
+}
+
+@keyframes board-fish-swim {
+  0% {
+    transform: translateX(140%);
+    opacity: 0;
+  }
+  14% {
+    opacity: 0.68;
+  }
+  82% {
+    opacity: 0.68;
+  }
+  100% {
+    transform: translateX(-900%);
+    opacity: 0;
+  }
+}

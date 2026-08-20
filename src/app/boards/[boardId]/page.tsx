@@ -42,6 +42,38 @@ const COLUMN_COLORS = [
 ];
 const BOARD_SIZE = 5;
 
+// リーチ中に右から左へ横切る金魚。位置・サイズ・タイミングはデザイン確定版のモックアップから移植
+type FishConfig = {
+  top: string;
+  width: number;
+  height: number;
+  delay: string;
+  duration: string;
+  color: string;
+};
+
+const FISH: FishConfig[] = [
+  { top: "4%", width: 52, height: 26, delay: "0.15s", duration: "1.5s", color: "#FFC93C" },
+  { top: "10%", width: 60, height: 30, delay: "0.30s", duration: "1.7s", color: "#E11D2E" },
+  { top: "16%", width: 44, height: 22, delay: "0.42s", duration: "1.4s", color: "#B3121F" },
+  { top: "22%", width: 56, height: 28, delay: "0.58s", duration: "1.6s", color: "#FFC93C" },
+  { top: "29%", width: 48, height: 24, delay: "0.70s", duration: "1.5s", color: "#E11D2E" },
+  { top: "35%", width: 62, height: 31, delay: "0.85s", duration: "1.8s", color: "#FFC93C" },
+  { top: "41%", width: 40, height: 20, delay: "0.95s", duration: "1.4s", color: "#B3121F" },
+  { top: "47%", width: 58, height: 29, delay: "1.10s", duration: "1.6s", color: "#E11D2E" },
+  { top: "53%", width: 50, height: 25, delay: "1.25s", duration: "1.5s", color: "#FFC93C" },
+  { top: "59%", width: 60, height: 30, delay: "1.35s", duration: "1.7s", color: "#B3121F" },
+  { top: "65%", width: 46, height: 23, delay: "1.50s", duration: "1.4s", color: "#E11D2E" },
+  { top: "71%", width: 56, height: 28, delay: "1.65s", duration: "1.6s", color: "#FFC93C" },
+  { top: "77%", width: 52, height: 26, delay: "1.80s", duration: "1.5s", color: "#B3121F" },
+  { top: "83%", width: 62, height: 31, delay: "1.95s", duration: "1.8s", color: "#E11D2E" },
+  { top: "89%", width: 44, height: 22, delay: "2.10s", duration: "1.4s", color: "#FFC93C" },
+  { top: "94%", width: 58, height: 29, delay: "2.25s", duration: "1.6s", color: "#B3121F" },
+];
+
+const FISH_PATH =
+  "M2,16 C2,8 14,4 26,4 C40,4 50,10 50,16 C50,22 40,28 26,28 C14,28 2,24 2,16 Z M50,16 L62,6 L62,26 Z";
+
 async function fetchBoardAndGame(
   boardId: string
 ): Promise<{ board?: Board; game?: GameSummary; error?: string }> {
@@ -393,47 +425,70 @@ export default function BoardPage() {
               </div>
             </div>
           )}
-          <div className="grid grid-cols-5 gap-1.5">
-            {COLUMN_LABELS.map((label, index) => (
-              <div
-                key={label}
-                className="flex items-end justify-center pb-1 font-heading text-4xl leading-none font-extrabold"
-                style={{ color: COLUMN_COLORS[index] }}
-              >
-                {label}
+          <div className="relative overflow-hidden rounded-xl">
+            {board.isReach && celebrationReady && (
+              <div className="board-fish-layer">
+                {FISH.map((fish, index) => (
+                  <svg
+                    key={index}
+                    className="board-fish"
+                    style={{
+                      top: fish.top,
+                      width: fish.width,
+                      height: fish.height,
+                      animationDelay: fish.delay,
+                      animationDuration: fish.duration,
+                    }}
+                    viewBox="0 0 64 32"
+                  >
+                    <path d={FISH_PATH} fill={fish.color} />
+                    <circle cx="10" cy="13" r="1.6" fill="#7A0D16" />
+                  </svg>
+                ))}
               </div>
-            ))}
-            {cells.map(({ col, row }) => {
-              const value = board.numbers[col][row];
-              const key = `${col}-${row}`;
-              const isFlashing = flashingCells.has(key);
-              const isMarked = board.marked[col][row];
-              const isFree = value === null;
-              const isReachCell = celebrationReady && reachCellKeys.has(key);
-              const isBingoCell = celebrationReady && bingoCellKeys.has(key);
-              // トークンの見た目の優先順位: フラッシュ中 > ビンゴライン > 通常の当選/FREE > 未当選
-              const tokenClass = isFlashing
-                ? "board-token animate-bingo-flash"
-                : isBingoCell
-                  ? isFree
-                    ? "board-token board-token-free-bingo"
-                    : "board-token board-token-bingo"
-                  : isMarked
-                    ? isFree
-                      ? "board-token board-token-free"
-                      : "board-token board-token-marked"
-                    : "board-token";
-              return (
+            )}
+            <div className="grid grid-cols-5 gap-1.5">
+              {COLUMN_LABELS.map((label, index) => (
                 <div
-                  key={key}
-                  className={`board-cell ${isReachCell ? "board-cell-reach" : ""} ${
-                    isBingoCell ? "board-cell-bingo" : ""
-                  } ${isReachCell || isBingoCell ? "animate-reach-pop" : ""}`}
+                  key={label}
+                  className="flex items-end justify-center pb-1 font-heading text-4xl leading-none font-extrabold"
+                  style={{ color: COLUMN_COLORS[index] }}
                 >
-                  <span className={tokenClass}>{isFree ? "FREE" : value}</span>
+                  {label}
                 </div>
-              );
-            })}
+              ))}
+              {cells.map(({ col, row }) => {
+                const value = board.numbers[col][row];
+                const key = `${col}-${row}`;
+                const isFlashing = flashingCells.has(key);
+                const isMarked = board.marked[col][row];
+                const isFree = value === null;
+                const isReachCell = celebrationReady && reachCellKeys.has(key);
+                const isBingoCell = celebrationReady && bingoCellKeys.has(key);
+                // トークンの見た目の優先順位: フラッシュ中 > ビンゴライン > 通常の当選/FREE > 未当選
+                const tokenClass = isFlashing
+                  ? "board-token animate-bingo-flash"
+                  : isBingoCell
+                    ? isFree
+                      ? "board-token board-token-free-bingo"
+                      : "board-token board-token-bingo"
+                    : isMarked
+                      ? isFree
+                        ? "board-token board-token-free"
+                        : "board-token board-token-marked"
+                      : "board-token";
+                return (
+                  <div
+                    key={key}
+                    className={`board-cell ${isReachCell ? "board-cell-reach" : ""} ${
+                      isBingoCell ? "board-cell-bingo" : ""
+                    } ${isReachCell || isBingoCell ? "animate-reach-pop" : ""}`}
+                  >
+                    <span className={tokenClass}>{isFree ? "FREE" : value}</span>
+                  </div>
+                );
+              })}
+            </div>
           </div>
         </div>
       </div>
