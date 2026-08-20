@@ -193,7 +193,7 @@ export default function JoinPage() {
           <button
             type="submit"
             disabled={submitting}
-            className="matsuri-primary-btn mt-4 w-full rounded-full py-3.5 font-heading text-[17px] font-bold text-matsuri-cream-soft disabled:opacity-50"
+            className="matsuri-primary-btn matsuri-primary-btn--gradient mt-4 w-full rounded-full py-3.5 font-heading text-[17px] font-bold text-matsuri-cream-soft disabled:opacity-50"
           >
             {submitting ? "発行中..." : "ボードを発行"}
           </button>
