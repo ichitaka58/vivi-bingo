@@ -29,6 +29,11 @@
   --color-matsuri-red-bright: #ff4c5f;
   --color-matsuri-red-darkest: #9e0f1b;
   --color-matsuri-red-ink: #7a0d16;
+  --color-matsuri-gold-deep: #ffb400;
+  --color-matsuri-gold-ink: #7a5b00;
+  --color-matsuri-border-calm: #ece4d0;
+  --color-matsuri-muted: #8b8578;
+  --color-matsuri-placeholder: #b8b2a2;
   --font-heading: var(--font-baloo);
   --font-display: var(--font-fredoka);
   --font-round: var(--font-nunito);
@@ -463,18 +468,23 @@ body {
   }
 }
 
-/* 赤グラデーションの主要ボタン（参加画面の送信ボタン等）。押し込み感を出す */
+/* 赤系の主要ボタン（送信・作成ボタン等）。押し込み感を出す */
 .matsuri-primary-btn {
   cursor: pointer;
+  background: var(--color-matsuri-red);
+  box-shadow: 0 6px 14px rgba(177, 18, 31, 0.28);
+  transition:
+    transform 0.08s ease,
+    box-shadow 0.08s ease;
+}
+
+.matsuri-primary-btn--gradient {
   background: linear-gradient(
     135deg,
     var(--color-matsuri-red),
     var(--color-matsuri-red-deep)
   );
   box-shadow: 0 6px 14px rgba(177, 18, 31, 0.35);
-  transition:
-    transform 0.08s ease,
-    box-shadow 0.08s ease;
 }
 
 .matsuri-primary-btn:active:not(:disabled) {
