@@ -42,6 +42,12 @@ const COLUMN_COLORS = [
 ];
 const BOARD_SIZE = 5;
 
+// リーチライン（セル座標の列）を比較可能な文字列キーに変換する。
+// 「新たなリーチLINEができたか」を前回との差分で判定するために使う。
+function reachLineKey(line: { col: number; row: number }[]): string {
+  return line.map(({ col, row }) => `${col}-${row}`).join(",");
+}
+
 // リーチ中に右から左へ横切る金魚。位置・サイズ・タイミングはデザイン確定版のモックアップから移植
 type FishConfig = {
   top: string;
@@ -136,7 +142,11 @@ export default function BoardPage() {
   );
   const bingoCelebratedRef = useRef(false); // このボードでクラッカー演出を発火済みか（1回だけ発火させるため）
   const confettiCancelRef = useRef<(() => void) | null>(null); // 発火中のクラッカー演出を止める関数
-  const [reachZoneShown, setReachZoneShown] = useState(false); // リーチ演出（バナー/金魚）を一度でも表示済みか（演出のやり直しを防ぐラッチ）
+  // リーチ演出（バナー/金魚）を新たなリーチLINEの発生ごとに再生するための状態。
+  // pendingNewReachLine: 前回取得時からリーチLINEが増えた（まだ演出未消化）ことを示すフラグ
+  // reachAnimKey: 演出を再生した回数。バナー/金魚のkeyに使い、増分のたびに新規DOM要素として再マウントさせる
+  const [pendingNewReachLine, setPendingNewReachLine] = useState(false);
+  const [reachAnimKey, setReachAnimKey] = useState(0);
 
   // ボード/ゲーム情報の取得＋Supabase Realtime購読。
   // 新しく当たったマスを検出してflashingCellsに積み、3秒後に自動で外す（＝当選フラッシュ演出）。
@@ -191,6 +201,21 @@ export default function BoardPage() {
             flashTimeouts.add(timeoutId);
           });
         }
+
+        // 前回になかったリーチLINEが新たに増えていたら、リーチ演出（バナー/金魚）を
+        // 再生対象としてマークする（既存のリーチLINEが残っているだけでは発火させない）
+        const prevReachKeys = new Set(
+          judgeBingo(prevMarked).reachLines.map(reachLineKey)
+        );
+        const hasNewReachLine = judgeBingo(result.board.marked).reachLines.some(
+          (line) => !prevReachKeys.has(reachLineKey(line))
+        );
+        if (hasNewReachLine) {
+          setPendingNewReachLine(true);
+        }
+      } else if (judgeBingo(result.board.marked).reachLines.length > 0) {
+        // 初回取得時点で既にリーチ状態だった場合も、演出は表示する
+        setPendingNewReachLine(true);
       }
       previousMarkedRef.current = result.board.marked;
 
@@ -205,7 +230,8 @@ export default function BoardPage() {
     async function run() {
       previousMarkedRef.current = null;
       bingoCelebratedRef.current = false;
-      setReachZoneShown(false);
+      setPendingNewReachLine(false);
+      setReachAnimKey(0);
       setFlashingCells(new Set());
       const gameId = await refresh();
       if (cancelled || !gameId) {
@@ -332,15 +358,17 @@ export default function BoardPage() {
       line.map(({ col, row }) => `${col}-${row}`)
     )
   );
-  // リーチ演出（バナー/金魚）: 初回はフラッシュ終了後にマウントしてフルで再生し、
-  // 一度表示したら（reachZoneShown）以降はDOMを維持したままフラッシュ中だけ非表示にする
-  // （マウント状態を保つことで、新たなリーチLINEが発生していないフラッシュのたびに
-  // アニメーションがやり直されるのを防ぐ）
-  if (board.isReach && celebrationReady && !reachZoneShown) {
-    setReachZoneShown(true);
+  // リーチ演出（バナー/金魚）: 新たなリーチLINEが発生した（pendingNewReachLine）場合のみ、
+  // フラッシュ終了を待ってreachAnimKeyを進める。バナー/金魚はkey={reachAnimKey}で
+  // マウントしているため、増分のたびに新規DOM要素として再マウント＝演出が再生される。
+  // 新たなLINEが発生していないフラッシュ（celebrationReadyの単なるtrue/false切り替え）では
+  // reachAnimKeyが変わらないため、既存のDOM要素が維持され演出はやり直されない。
+  if (celebrationReady && pendingNewReachLine) {
+    setReachAnimKey((key) => key + 1);
+    setPendingNewReachLine(false);
   }
   const reachZoneVisible = board.isReach && celebrationReady;
-  const reachZoneMounted = board.isReach && reachZoneShown;
+  const reachZoneMounted = board.isReach && reachAnimKey > 0;
 
   return (
     <div className="relative flex w-full flex-1 flex-col overflow-hidden bg-matsuri-cream font-round text-matsuri-navy">
@@ -443,10 +471,10 @@ export default function BoardPage() {
             <div
               className={`board-reach-zone ${reachZoneVisible ? "" : "invisible"}`}
             >
-              <div className="board-reach-banner">
+              <div key={`banner-${reachAnimKey}`} className="board-reach-banner">
                 <span className="board-reach-banner-text">リーチ!</span>
               </div>
-              <div className="board-reach-badge">
+              <div key={`badge-${reachAnimKey}`} className="board-reach-badge">
                 <span className="board-reach-badge-dot" />
                 リーチ中
               </div>
@@ -476,6 +504,7 @@ export default function BoardPage() {
           <div className="relative overflow-hidden rounded-xl">
             {reachZoneMounted && (
               <div
+                key={reachAnimKey}
                 className={`board-fish-layer ${reachZoneVisible ? "" : "invisible"}`}
               >
                 {FISH.map((fish, index) => (
