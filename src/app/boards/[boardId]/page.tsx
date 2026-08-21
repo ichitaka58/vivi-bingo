@@ -501,11 +501,11 @@ export default function BoardPage() {
               <span className="board-bingo-text">BINGO!!</span>
             </div>
           )}
-          <div className="relative overflow-hidden rounded-xl">
+          <div className="relative">
             {reachZoneMounted && (
               <div
                 key={reachAnimKey}
-                className={`board-fish-layer ${reachZoneVisible ? "" : "invisible"}`}
+                className={`board-fish-layer overflow-hidden rounded-xl ${reachZoneVisible ? "" : "invisible"}`}
               >
                 {FISH.map((fish, index) => (
                   <svg
