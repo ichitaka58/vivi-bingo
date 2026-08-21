@@ -136,6 +136,7 @@ export default function BoardPage() {
   );
   const bingoCelebratedRef = useRef(false); // このボードでクラッカー演出を発火済みか（1回だけ発火させるため）
   const confettiCancelRef = useRef<(() => void) | null>(null); // 発火中のクラッカー演出を止める関数
+  const [reachZoneShown, setReachZoneShown] = useState(false); // リーチ演出（バナー/金魚）を一度でも表示済みか（演出のやり直しを防ぐラッチ）
 
   // ボード/ゲーム情報の取得＋Supabase Realtime購読。
   // 新しく当たったマスを検出してflashingCellsに積み、3秒後に自動で外す（＝当選フラッシュ演出）。
@@ -204,6 +205,7 @@ export default function BoardPage() {
     async function run() {
       previousMarkedRef.current = null;
       bingoCelebratedRef.current = false;
+      setReachZoneShown(false);
       setFlashingCells(new Set());
       const gameId = await refresh();
       if (cancelled || !gameId) {
@@ -330,6 +332,15 @@ export default function BoardPage() {
       line.map(({ col, row }) => `${col}-${row}`)
     )
   );
+  // リーチ演出（バナー/金魚）: 初回はフラッシュ終了後にマウントしてフルで再生し、
+  // 一度表示したら（reachZoneShown）以降はDOMを維持したままフラッシュ中だけ非表示にする
+  // （マウント状態を保つことで、新たなリーチLINEが発生していないフラッシュのたびに
+  // アニメーションがやり直されるのを防ぐ）
+  if (board.isReach && celebrationReady && !reachZoneShown) {
+    setReachZoneShown(true);
+  }
+  const reachZoneVisible = board.isReach && celebrationReady;
+  const reachZoneMounted = board.isReach && reachZoneShown;
 
   return (
     <div className="relative flex w-full flex-1 flex-col overflow-hidden bg-matsuri-cream font-round text-matsuri-navy">
@@ -428,8 +439,10 @@ export default function BoardPage() {
         )}
 
         <div className="relative mt-12">
-          {board.isReach && celebrationReady && (
-            <div className="board-reach-zone">
+          {reachZoneMounted && (
+            <div
+              className={`board-reach-zone ${reachZoneVisible ? "" : "invisible"}`}
+            >
               <div className="board-reach-banner">
                 <span className="board-reach-banner-text">リーチ!</span>
               </div>
@@ -461,8 +474,10 @@ export default function BoardPage() {
             </div>
           )}
           <div className="relative overflow-hidden rounded-xl">
-            {board.isReach && celebrationReady && (
-              <div className="board-fish-layer">
+            {reachZoneMounted && (
+              <div
+                className={`board-fish-layer ${reachZoneVisible ? "" : "invisible"}`}
+              >
                 {FISH.map((fish, index) => (
                   <svg
                     key={index}
