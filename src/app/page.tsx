@@ -1,69 +1,130 @@
-import Image from "next/image";
+import Link from "next/link";
+import { Baloo_2, Fredoka, Nunito } from "next/font/google";
+
+const baloo2 = Baloo_2({
+  variable: "--font-baloo",
+  weight: "variable",
+  subsets: ["latin"],
+});
+
+const fredoka = Fredoka({
+  variable: "--font-fredoka",
+  weight: "variable",
+  subsets: ["latin"],
+});
+
+const nunito = Nunito({
+  variable: "--font-nunito",
+  weight: "variable",
+  subsets: ["latin"],
+});
+
+const COLUMN_LABELS = ["B", "I", "N", "G", "O"];
+const COLUMN_COLORS = [
+  "var(--color-matsuri-red)",
+  "var(--color-matsuri-gold)",
+  "var(--color-matsuri-navy)",
+  "var(--color-matsuri-gold)",
+  "var(--color-matsuri-red)",
+];
+
+// プレビュー用のサンプル盤面（col→row）。1行分を当選済みにして雰囲気を出す
+const PREVIEW_NUMBERS: (number | null)[][] = [
+  [4, 12, 7, 15, 2],
+  [22, 18, 29, 16, 25],
+  [31, 38, null, 44, 33],
+  [52, 47, 59, 50, 60],
+  [61, 70, 65, 74, 68],
+];
+const PREVIEW_MARKED: boolean[][] = [
+  [true, false, false, true, false],
+  [true, false, true, false, false],
+  [true, false, true, false, false],
+  [true, false, false, false, true],
+  [true, false, false, true, false],
+];
 
 export default function Home() {
   return (
-    <div className="flex flex-col flex-1 items-center justify-center bg-zinc-50 font-sans dark:bg-black">
-      <main className="flex flex-1 w-full max-w-3xl flex-col items-center justify-between py-32 px-16 bg-white dark:bg-black sm:items-start">
-        <Image
-          className="dark:invert h-5 w-[100px]"
-          src="/next.svg"
-          alt="Next.js logo"
-          width={100}
-          height={20}
-          priority
-        />
-        <div className="flex flex-col items-center gap-6 text-center sm:items-start sm:text-left">
-          <h1 className="max-w-xs text-3xl font-semibold leading-10 tracking-tight text-black dark:text-zinc-50">
-            To get started, edit the{" "}
-            <code className="rounded bg-black/[.06] px-1.5 py-0.5 font-mono text-[0.9em] dark:bg-white/[.08]">
-              page.tsx
-            </code>{" "}
-            file.
+    <div
+      className={`contents ${baloo2.variable} ${fredoka.variable} ${nunito.variable}`}
+    >
+      <div className="flex w-full flex-1 flex-col items-center justify-center bg-matsuri-cream px-4 py-16 font-round text-matsuri-navy">
+        <div className="w-full max-w-lg text-center">
+          <span className="inline-flex w-fit rounded-full bg-matsuri-red px-3 py-1 font-heading text-xs font-bold tracking-wide text-matsuri-cream-soft">
+            BINGO PARTY
+          </span>
+          <h1 className="mt-4 font-heading text-6xl leading-none font-extrabold sm:text-7xl">
+            ViVi! Bingo!
           </h1>
-          <p className="max-w-md text-lg leading-8 text-zinc-600 dark:text-zinc-400">
-            Looking for a starting point or more instructions? Head over to{" "}
-            <a
-              href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
-            >
-              Templates
-            </a>{" "}
-            or the{" "}
-            <a
-              href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
-            >
-              Learning
-            </a>{" "}
-            center.
+          <p className="mt-5 text-sm leading-relaxed font-bold text-matsuri-muted sm:text-base">
+            URLとQRコードだけで参加できる、オンライン縁日ビンゴ。
+            <br />
+            ゲームを作って、みんなでリアルタイムに盛り上がろう。
           </p>
-        </div>
-        <div className="flex flex-col gap-4 text-base font-medium sm:flex-row">
-          <a
-            className="flex h-12 w-full items-center justify-center gap-2 rounded-full bg-foreground px-5 text-background transition-colors hover:bg-[#383838] dark:hover:bg-[#ccc] md:w-[158px]"
-            href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
+
+          <div className="mt-8 rounded-2xl border-[1.5px] border-matsuri-border-calm bg-white p-4 sm:mx-auto sm:w-64 sm:p-3">
+            <div className="grid grid-cols-5 gap-1.5 sm:gap-1">
+              {COLUMN_LABELS.map((label, index) => (
+                <div
+                  key={label}
+                  className="flex items-end justify-center pb-1 font-heading text-xl leading-none font-extrabold sm:pb-0.5 sm:text-sm"
+                  style={{ color: COLUMN_COLORS[index] }}
+                >
+                  {label}
+                </div>
+              ))}
+              {PREVIEW_NUMBERS.flatMap((column, col) =>
+                column.map((value, row) => {
+                  const isFree = value === null;
+                  const isMarked = PREVIEW_MARKED[col][row];
+                  const tokenClass = `${
+                    isMarked
+                      ? isFree
+                        ? "board-token board-token-free"
+                        : "board-token board-token-marked"
+                      : "board-token"
+                  } sm:text-[12px]!`;
+                  return (
+                    <div
+                      key={`${col}-${row}`}
+                      className={`board-cell ${row === 0 ? "board-cell-reach" : ""}`}
+                    >
+                      <span className={tokenClass}>
+                        {isFree ? "FREE" : value}
+                      </span>
+                    </div>
+                  );
+                }),
+              )}
+            </div>
+          </div>
+
+          <div className="mt-8 rounded-2xl border-[1.5px] border-matsuri-border-calm bg-white p-6 text-left">
+            <ul className="flex flex-col gap-3.5 text-sm font-bold">
+              <li className="flex items-start gap-2.5">
+                <span aria-hidden>🎫</span>
+                参加者はアプリ不要。URL・QRコードを開くだけでボードが発行されます
+              </li>
+              <li className="flex items-start gap-2.5">
+                <span aria-hidden>🎯</span>
+                抽選結果はリアルタイムで全員の画面に反映されます
+              </li>
+              <li className="flex items-start gap-2.5">
+                <span aria-hidden>🏮</span>
+                リーチ・ビンゴを盛り上げる祭り演出つき
+              </li>
+            </ul>
+          </div>
+
+          <Link
+            href="/admin/new"
+            className="matsuri-primary-btn mt-8 inline-flex items-center justify-center rounded-full px-10 py-3.5 font-heading text-base font-bold text-matsuri-cream-soft"
           >
-            <Image
-              className="dark:invert h-[14px] w-4"
-              src="/vercel.svg"
-              alt="Vercel logomark"
-              width={16}
-              height={14}
-            />
-            Deploy Now
-          </a>
-          <a
-            className="flex h-12 w-full items-center justify-center rounded-full border border-solid border-black/[.08] px-5 transition-colors hover:border-transparent hover:bg-black/[.04] dark:border-white/[.145] dark:hover:bg-[#1a1a1a] md:w-[158px]"
-            href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            Documentation
-          </a>
+            ゲームを作成する
+          </Link>
         </div>
-      </main>
+      </div>
     </div>
   );
 }
