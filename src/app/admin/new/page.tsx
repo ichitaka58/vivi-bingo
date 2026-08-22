@@ -62,7 +62,10 @@ export default function NewGamePage() {
         : `/join/${createdGame.joinUrlToken}`;
 
     return (
-      <div className="flex flex-1 items-center justify-center bg-matsuri-cream px-4 py-16 font-round text-matsuri-navy">
+      <div className="flex w-full flex-1 flex-col items-center justify-center gap-6 bg-matsuri-cream px-4 py-16 font-round text-matsuri-navy">
+        <h1 className="font-heading text-6xl font-extrabold sm:text-7xl">
+          ViVi! Bingo!
+        </h1>
         <div className="w-full max-w-md rounded-2xl border-[1.5px] border-matsuri-border-calm bg-white p-7">
           <div className="flex items-center gap-2.5">
             <span
@@ -82,9 +85,9 @@ export default function NewGamePage() {
                 />
               </svg>
             </span>
-            <h1 className="font-heading text-xl font-bold">
+            <h2 className="font-heading text-xl font-bold">
               ゲームを作成しました
-            </h1>
+            </h2>
           </div>
 
           <dl className="mt-5">
@@ -131,7 +134,10 @@ export default function NewGamePage() {
   }
 
   return (
-    <div className="flex flex-1 items-center justify-center bg-matsuri-cream px-4 py-16 font-round text-matsuri-navy">
+    <div className="flex w-full flex-1 flex-col items-center justify-center gap-6 bg-matsuri-cream px-4 py-16 font-round text-matsuri-navy">
+      <h1 className="font-heading text-6xl font-extrabold sm:text-7xl">
+        ViVi! Bingo!
+      </h1>
       <form
         onSubmit={handleSubmit}
         className="w-full max-w-md rounded-2xl border-[1.5px] border-matsuri-border-calm bg-white p-7"
@@ -139,9 +145,9 @@ export default function NewGamePage() {
         <span className="inline-flex w-fit rounded-full bg-matsuri-red px-3 py-1 font-heading text-xs font-bold tracking-wide text-matsuri-cream-soft">
           NEW GAME
         </span>
-        <h1 className="mt-2.5 mb-5 font-heading text-[22px] font-bold">
+        <h2 className="mt-2.5 mb-5 font-heading text-[22px] font-bold">
           ゲームを作成
-        </h1>
+        </h2>
 
         <div>
           <label
