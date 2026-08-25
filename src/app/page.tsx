@@ -117,12 +117,20 @@ export default function Home() {
             </ul>
           </div>
 
-          <Link
-            href="/admin/new"
-            className="matsuri-primary-btn mt-8 inline-flex items-center justify-center rounded-full px-10 py-3.5 font-heading text-base font-bold text-matsuri-cream-soft"
-          >
-            ゲームを作成する
-          </Link>
+          <div className="mt-8 flex flex-col items-center gap-3">
+            <Link
+              href="/admin/new"
+              className="matsuri-primary-btn inline-flex items-center justify-center rounded-full px-10 py-3.5 font-heading text-base font-bold text-matsuri-cream-soft"
+            >
+              ゲームを作成する
+            </Link>
+            <Link
+              href="/admin"
+              className="font-heading text-sm font-bold text-matsuri-purple underline underline-offset-2"
+            >
+              ゲームを管理する
+            </Link>
+          </div>
         </div>
       </div>
     </div>
