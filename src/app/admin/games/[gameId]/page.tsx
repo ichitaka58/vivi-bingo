@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useParams } from "next/navigation";
+import Link from "next/link";
 import { supabase } from "@/lib/supabase";
 import QrCode from "@/components/QrCode";
 import CopyButton from "@/components/CopyButton";
@@ -263,6 +264,12 @@ export default function AdminGamePage() {
     <div className="flex w-full flex-1 flex-col bg-matsuri-cream font-round text-matsuri-navy">
       <div className="admin-banner flex flex-wrap items-start justify-between gap-4 px-6 py-5 sm:px-9 sm:py-6">
         <div className="flex flex-col gap-2">
+          <Link
+            href="/admin"
+            className="inline-flex w-fit items-center gap-1 font-heading text-xs font-bold text-matsuri-cream-soft underline underline-offset-2"
+          >
+            ← ゲーム一覧
+          </Link>
           <span className="inline-flex w-fit rounded-full bg-white px-3 py-1 font-heading text-xs font-bold tracking-wide text-matsuri-red">
             BINGO PARTY
           </span>

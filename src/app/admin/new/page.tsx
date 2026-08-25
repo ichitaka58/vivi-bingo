@@ -4,6 +4,7 @@ import { useState, type SubmitEvent } from "react";
 import Link from "next/link";
 import QrCode from "@/components/QrCode";
 import CopyButton from "@/components/CopyButton";
+import { addMyGameId } from "@/lib/my-games";
 
 type CreatedGame = {
   id: string;
@@ -49,7 +50,9 @@ export default function NewGamePage() {
         return;
       }
 
-      setCreatedGame(data as CreatedGame);
+      const created = data as CreatedGame;
+      addMyGameId(created.id);
+      setCreatedGame(created);
     } catch {
       setError("通信エラーが発生しました。");
     } finally {
