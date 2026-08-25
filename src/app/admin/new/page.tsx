@@ -1,7 +1,9 @@
 "use client";
 
 import { useState, type SubmitEvent } from "react";
+import Link from "next/link";
 import QrCode from "@/components/QrCode";
+import CopyButton from "@/components/CopyButton";
 
 type CreatedGame = {
   id: string;
@@ -109,8 +111,11 @@ export default function NewGamePage() {
               <dt className="font-heading text-[11px] font-bold tracking-wide text-matsuri-muted uppercase">
                 参加用URL
               </dt>
-              <dd className="mt-1 font-mono text-xs break-all text-matsuri-purple">
-                {joinUrl}
+              <dd className="mt-1 flex items-center gap-2">
+                <span className="flex-1 font-mono text-xs break-all text-matsuri-purple">
+                  {joinUrl}
+                </span>
+                <CopyButton value={joinUrl} />
               </dd>
             </div>
             <div className="border-t border-matsuri-border-calm py-3">
@@ -125,9 +130,16 @@ export default function NewGamePage() {
 
           <div className="mt-5 flex justify-center">
             <div className="rounded-xl border-[1.5px] border-matsuri-border-calm p-2">
-              <QrCode value={joinUrl} size={132} />
+              <QrCode value={joinUrl} size={132} withActions />
             </div>
           </div>
+
+          <Link
+            href={`/admin/games/${createdGame.id}`}
+            className="matsuri-primary-btn mt-6 flex w-full items-center justify-center rounded-full py-3.5 font-heading text-base font-bold text-matsuri-cream-soft"
+          >
+            管理画面へ
+          </Link>
         </div>
       </div>
     );
