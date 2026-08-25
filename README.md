@@ -1,5 +1,11 @@
 # ViVi! Bingo!
 
+![Next.js](https://img.shields.io/badge/Next.js-16-black?logo=next.js&logoColor=white)
+![React](https://img.shields.io/badge/React-19-149ECA?logo=react&logoColor=white)
+![TypeScript](https://img.shields.io/badge/TypeScript-5-3178C6?logo=typescript&logoColor=white)
+![Tailwind CSS](https://img.shields.io/badge/Tailwind_CSS-4-06B6D4?logo=tailwindcss&logoColor=white)
+![Supabase](https://img.shields.io/badge/Supabase-PostgreSQL-3FCF8E?logo=supabase&logoColor=white)
+
 オンラインBingoゲームです。
 オーナーがオンラインでBingo大会を開催し、参加者がスマホからURL/QRコード経由で参加してリアルタイムに進行する抽選ゲームに参加できるWebアプリです。想定同時参加者数は最大100名程度、単発〜数回のイベント利用を想定しています。
 ※本アプリは、AIで実装しています。
