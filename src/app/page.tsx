@@ -19,6 +19,26 @@ const nunito = Nunito({
   subsets: ["latin"],
 });
 
+const HOW_TO_STEPS = [
+  {
+    title: "ゲームを作成する",
+    body: "「ゲームを作成する」からタイトルと参加URLの有効期限を決めて開設します。アカウント登録は不要です。",
+  },
+  {
+    title: "URL・QRコードを配る",
+    body: "発行された参加URLとQRコードを参加者に共有。参加者はアプリ不要で開くだけ、自動でBingoボードが発行されます。",
+  },
+  {
+    title: "抽選して盛り上がる",
+    body: "オーナーが番号を抽選すると、結果は全員の画面へリアルタイムに反映。リーチ・ビンゴには祭り演出が入ります。",
+  },
+];
+const STEP_COLORS = [
+  "var(--color-matsuri-red)",
+  "var(--color-matsuri-gold)",
+  "var(--color-matsuri-navy)",
+];
+
 const COLUMN_LABELS = ["B", "I", "N", "G", "O"];
 const COLUMN_COLORS = [
   "var(--color-matsuri-red)",
@@ -115,6 +135,33 @@ export default function Home() {
                 リーチ・ビンゴを盛り上げる祭り演出つき
               </li>
             </ul>
+          </div>
+
+          <div className="mt-8 rounded-2xl border-[1.5px] border-matsuri-border-calm bg-white p-6 text-left">
+            <h2 className="font-heading text-lg font-extrabold text-matsuri-navy">
+              遊び方
+            </h2>
+            <ol className="mt-4 flex flex-col gap-4">
+              {HOW_TO_STEPS.map((step, index) => (
+                <li key={step.title} className="flex items-start gap-3">
+                  <span
+                    className="flex size-7 shrink-0 items-center justify-center rounded-full font-heading text-sm font-extrabold text-matsuri-cream-soft"
+                    style={{ background: STEP_COLORS[index] }}
+                    aria-hidden
+                  >
+                    {index + 1}
+                  </span>
+                  <div className="flex flex-col gap-1">
+                    <span className="font-heading text-sm font-extrabold text-matsuri-navy">
+                      {step.title}
+                    </span>
+                    <span className="text-xs leading-relaxed font-bold text-matsuri-muted">
+                      {step.body}
+                    </span>
+                  </div>
+                </li>
+              ))}
+            </ol>
           </div>
 
           <div className="mt-8 flex flex-col items-center gap-3">
