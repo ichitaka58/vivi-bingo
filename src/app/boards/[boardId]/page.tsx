@@ -42,6 +42,10 @@ const COLUMN_COLORS = [
 ];
 const BOARD_SIZE = 5;
 
+// リーチ音声（女性アニメ風「リ〜チ！」）。バナーが飛び込んで着地する頃に合わせて少し遅らせて再生する
+const REACH_VOICE_SRC = "/sounds/reach.mp3";
+const REACH_VOICE_DELAY_MS = 400;
+
 // リーチライン（セル座標の列）を比較可能な文字列キーに変換する。
 // 「新たなリーチLINEができたか」を前回との差分で判定するために使う。
 function reachLineKey(line: { col: number; row: number }[]): string {
@@ -147,6 +151,10 @@ export default function BoardPage() {
   // reachAnimKey: 演出を再生した回数。バナー/金魚のkeyに使い、増分のたびに新規DOM要素として再マウントさせる
   const [pendingNewReachLine, setPendingNewReachLine] = useState(false);
   const [reachAnimKey, setReachAnimKey] = useState(0);
+  // リーチ音声。<audio>要素をrefで1つだけ保持し、reachAnimKeyの増加（＝新しいリーチLINE）に
+  // 合わせて再生する。ブラウザの自動再生ブロック対策として、初回のユーザー操作で一度だけ
+  // 無音再生→即停止して要素を解錠しておく。
+  const reachAudioRef = useRef<HTMLAudioElement | null>(null);
 
   // ボード/ゲーム情報の取得＋Supabase Realtime購読。
   // 新しく当たったマスを検出してflashingCellsに積み、3秒後に自動で外す（＝当選フラッシュ演出）。
@@ -317,6 +325,59 @@ export default function BoardPage() {
       confettiCancelRef.current?.();
     };
   }, []);
+
+  // リーチ音声の初期化と、自動再生ブロック対策の解錠。
+  // 最初の pointerdown を1回だけ拾い、無音で play→pause して以降の play() を通す。
+  useEffect(() => {
+    const audio = new Audio(REACH_VOICE_SRC);
+    audio.preload = "auto";
+    reachAudioRef.current = audio;
+
+    let unlocked = false;
+    const unlock = () => {
+      if (unlocked) {
+        return;
+      }
+      unlocked = true;
+      window.removeEventListener("pointerdown", unlock);
+      const restoreMuted = audio.muted;
+      audio.muted = true;
+      audio
+        .play()
+        .then(() => {
+          audio.pause();
+          audio.currentTime = 0;
+          audio.muted = restoreMuted;
+        })
+        .catch(() => {
+          audio.muted = restoreMuted;
+        });
+    };
+    window.addEventListener("pointerdown", unlock);
+
+    return () => {
+      window.removeEventListener("pointerdown", unlock);
+      audio.pause();
+      reachAudioRef.current = null;
+    };
+  }, []);
+
+  // 新しいリーチLINEができるたび（reachAnimKeyの増加）に、バナー着地の頃を狙って1回だけ再生。
+  // 初回マウント時（reachAnimKey === 0）や、自動再生がブロックされた場合は何もしない。
+  useEffect(() => {
+    if (reachAnimKey === 0) {
+      return;
+    }
+    const timeoutId = setTimeout(() => {
+      const audio = reachAudioRef.current;
+      if (!audio) {
+        return;
+      }
+      audio.currentTime = 0;
+      audio.play().catch(() => {});
+    }, REACH_VOICE_DELAY_MS);
+    return () => clearTimeout(timeoutId);
+  }, [reachAnimKey]);
 
   if (loading) {
     return (
