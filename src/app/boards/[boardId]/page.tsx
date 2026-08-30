@@ -42,6 +42,10 @@ const COLUMN_COLORS = [
 ];
 const BOARD_SIZE = 5;
 
+// 抽選番号が増えたときの最初の反映を、管理者側の抽選演出とタイミングを合わせるために
+// この時間だけ保留してから画面へ反映する（ガラポン演出が最長で ≈4.3s のため、それにほぼ合わせる）。
+const REVEAL_HOLD_MS = 4000;
+
 // リーチ音声（女性アニメ風「リ〜チ！」）。バナーが飛び込んで着地する頃に合わせて少し遅らせて再生する
 const REACH_VOICE_SRC = "/sounds/reach.mp3";
 const REACH_VOICE_DELAY_MS = 400;
@@ -144,6 +148,16 @@ export default function BoardPage() {
   const flashTimeoutsRef = useRef<Set<ReturnType<typeof setTimeout>>>(
     new Set()
   );
+  // 抽選番号の反映保留（Bug対応: 管理者の演出より先に参加者へネタバレしないようにする）。
+  //   displayedDrawCountRef: 現在画面に反映済みの抽選回数（drawHistory の件数）
+  //   revealHoldRef: 保留中フラグ / revealHoldTimerRef: 保留解除タイマー
+  //   pendingUpdateRef: 保留中に取得した最新のボード/ゲーム（解除時にまとめて反映する）
+  const displayedDrawCountRef = useRef<number | null>(null);
+  const revealHoldRef = useRef(false);
+  const revealHoldTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const pendingUpdateRef = useRef<{ board: Board; game: GameSummary } | null>(
+    null
+  );
   const bingoCelebratedRef = useRef(false); // このボードでクラッカー演出を発火済みか（1回だけ発火させるため）
   const confettiCancelRef = useRef<(() => void) | null>(null); // 発火中のクラッカー演出を止める関数
   // リーチ演出（バナー/金魚）を新たなリーチLINEの発生ごとに再生するための状態。
@@ -162,26 +176,17 @@ export default function BoardPage() {
     let cancelled = false;
     const flashTimeouts = flashTimeoutsRef.current;
 
-    // ボード/ゲーム情報を取得し直し、前回との差分から新しく当たったマスを検出する
-    async function refresh(): Promise<string | undefined> {
-      const result = await fetchBoardAndGame(boardId);
-      if (cancelled) {
-        return undefined;
-      }
-      if (result.error || !result.board || !result.game) {
-        setError(result.error ?? "ボードが見つかりません。");
-        setLoading(false);
-        return undefined;
-      }
-
-      // 初回取得時（prevMarked未設定）は比較対象がないのでフラッシュさせない。
-      // 2回目以降の取得で「前回false→今回true」になったマスだけを新規当選とみなす。
+    // 取得したボード/ゲームを実際に画面へ反映する。前回表示との差分から
+    // 新しく当たったマス（フラッシュ）と新規リーチLINE（リーチ演出）を検出する。
+    function applyUpdate(nextBoard: Board, nextGame: GameSummary) {
+      // 初回反映時（prevMarked未設定）は比較対象がないのでフラッシュさせない。
+      // 2回目以降で「前回false→今回true」になったマスだけを新規当選とみなす。
       const prevMarked = previousMarkedRef.current;
       if (prevMarked) {
         const newlyMarkedKeys: string[] = [];
         for (let col = 0; col < BOARD_SIZE; col++) {
           for (let row = 0; row < BOARD_SIZE; row++) {
-            if (result.board.marked[col][row] && !prevMarked[col][row]) {
+            if (nextBoard.marked[col][row] && !prevMarked[col][row]) {
               newlyMarkedKeys.push(`${col}-${row}`);
             }
           }
@@ -215,22 +220,69 @@ export default function BoardPage() {
         const prevReachKeys = new Set(
           judgeBingo(prevMarked).reachLines.map(reachLineKey)
         );
-        const hasNewReachLine = judgeBingo(result.board.marked).reachLines.some(
+        const hasNewReachLine = judgeBingo(nextBoard.marked).reachLines.some(
           (line) => !prevReachKeys.has(reachLineKey(line))
         );
         if (hasNewReachLine) {
           setPendingNewReachLine(true);
         }
-      } else if (judgeBingo(result.board.marked).reachLines.length > 0) {
-        // 初回取得時点で既にリーチ状態だった場合も、演出は表示する
+      } else if (judgeBingo(nextBoard.marked).reachLines.length > 0) {
+        // 初回反映時点で既にリーチ状態だった場合も、演出は表示する
         setPendingNewReachLine(true);
       }
-      previousMarkedRef.current = result.board.marked;
+      previousMarkedRef.current = nextBoard.marked;
 
-      setBoard(result.board);
-      setGame(result.game);
+      setBoard(nextBoard);
+      setGame(nextGame);
       setLoading(false);
-      return result.board.gameId;
+      displayedDrawCountRef.current = nextGame.drawHistory.length;
+    }
+
+    // ボード/ゲーム情報を取得し直す。抽選番号が増えた最初の反映だけは、
+    // 管理者の抽選演出より先にネタバレしないよう REVEAL_HOLD_MS だけ保留してから applyUpdate する。
+    async function refresh(): Promise<string | undefined> {
+      const result = await fetchBoardAndGame(boardId);
+      if (cancelled) {
+        return undefined;
+      }
+      if (result.error || !result.board || !result.game) {
+        setError(result.error ?? "ボードが見つかりません。");
+        setLoading(false);
+        return undefined;
+      }
+      const gameId = result.board.gameId;
+
+      // 既に保留中なら、最新データだけ差し替えてタイマー満了を待つ
+      if (revealHoldRef.current) {
+        pendingUpdateRef.current = { board: result.board, game: result.game };
+        return gameId;
+      }
+
+      // 初回反映（displayedDrawCountRef 未設定）は保留しない。
+      // 以降、抽選回数が増えていたら「新しい抽選の反映」とみなして保留する。
+      const displayedDrawCount = displayedDrawCountRef.current;
+      const hasNewDraw =
+        displayedDrawCount !== null &&
+        result.game.drawHistory.length > displayedDrawCount;
+
+      if (hasNewDraw) {
+        revealHoldRef.current = true;
+        pendingUpdateRef.current = { board: result.board, game: result.game };
+        revealHoldTimerRef.current = setTimeout(() => {
+          revealHoldTimerRef.current = null;
+          revealHoldRef.current = false;
+          const pending = pendingUpdateRef.current;
+          pendingUpdateRef.current = null;
+          if (cancelled || !pending) {
+            return;
+          }
+          applyUpdate(pending.board, pending.game);
+        }, REVEAL_HOLD_MS);
+        return gameId;
+      }
+
+      applyUpdate(result.board, result.game);
+      return gameId;
     }
 
     // boardIdが変わるたびに演出関連の状態をリセットしてから初回取得し、
@@ -241,6 +293,13 @@ export default function BoardPage() {
       setPendingNewReachLine(false);
       setReachAnimKey(0);
       setFlashingCells(new Set());
+      displayedDrawCountRef.current = null;
+      revealHoldRef.current = false;
+      pendingUpdateRef.current = null;
+      if (revealHoldTimerRef.current) {
+        clearTimeout(revealHoldTimerRef.current);
+        revealHoldTimerRef.current = null;
+      }
       const gameId = await refresh();
       if (cancelled || !gameId) {
         return;
@@ -295,6 +354,10 @@ export default function BoardPage() {
       cancelled = true;
       flashTimeouts.forEach((timeoutId) => clearTimeout(timeoutId));
       flashTimeouts.clear();
+      if (revealHoldTimerRef.current) {
+        clearTimeout(revealHoldTimerRef.current);
+        revealHoldTimerRef.current = null;
+      }
       cleanupPromise.then((cleanup) => cleanup?.());
     };
   }, [boardId]);
