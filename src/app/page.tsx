@@ -137,7 +137,10 @@ export default function Home() {
             </ul>
           </div>
 
-          <div className="mt-8 rounded-2xl border-[1.5px] border-matsuri-border-calm bg-white p-6 text-left">
+          <div
+            id="howto"
+            className="mt-8 scroll-mt-8 rounded-2xl border-[1.5px] border-matsuri-border-calm bg-white p-6 text-left"
+          >
             <h2 className="font-heading text-lg font-extrabold text-matsuri-navy">
               遊び方
             </h2>
