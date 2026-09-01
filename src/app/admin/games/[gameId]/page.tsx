@@ -8,6 +8,7 @@ import QrCode from "@/components/QrCode";
 import CopyButton from "@/components/CopyButton";
 import RouletteDraw from "@/components/RouletteDraw";
 import GaraponDraw from "@/components/GaraponDraw";
+import ConfirmDialog from "@/components/ConfirmDialog";
 
 type GameStatus = "draft" | "open" | "playing" | "finished";
 
@@ -65,6 +66,7 @@ export default function AdminGamePage() {
   const [error, setError] = useState<string | null>(null);
   const [drawing, setDrawing] = useState(false);
   const [finishing, setFinishing] = useState(false);
+  const [confirmingFinish, setConfirmingFinish] = useState(false);
   const [animStyle, setAnimStyle] = useState<AnimStyle>(() => {
     if (typeof window === "undefined") {
       return "roulette";
@@ -208,9 +210,7 @@ export default function AdminGamePage() {
   }, []);
 
   async function handleFinish() {
-    if (!window.confirm("ゲームを終了しますか？終了後は抽選できません。")) {
-      return;
-    }
+    setConfirmingFinish(false);
     setFinishing(true);
     setError(null);
     try {
@@ -282,13 +282,25 @@ export default function AdminGamePage() {
         </div>
         <button
           type="button"
-          onClick={handleFinish}
+          onClick={() => setConfirmingFinish(true)}
           disabled={finishing || isFinished}
           className="cursor-pointer self-start rounded-full border-[1.5px] border-matsuri-cream-soft px-5 py-2.5 font-heading text-[13px] font-bold text-matsuri-cream-soft disabled:cursor-not-allowed disabled:opacity-50"
         >
           {finishing ? "終了処理中..." : "ゲームを終了する"}
         </button>
       </div>
+
+      <ConfirmDialog
+        open={confirmingFinish}
+        emoji="🏁"
+        title="ゲームを終了しますか？"
+        message="終了すると、以降の抽選ができなくなります。この操作は取り消せません。"
+        confirmLabel="終了する"
+        cancelLabel="キャンセル"
+        confirmDisabled={finishing}
+        onConfirm={handleFinish}
+        onCancel={() => setConfirmingFinish(false)}
+      />
 
       <div className="mx-auto flex w-full max-w-5xl flex-1 flex-col gap-4 px-6 py-6 sm:px-9">
         {isFinished && (
