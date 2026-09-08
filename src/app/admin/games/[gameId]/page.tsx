@@ -7,7 +7,6 @@ import { supabase } from "@/lib/supabase";
 import QrCode from "@/components/QrCode";
 import CopyButton from "@/components/CopyButton";
 import RouletteDraw from "@/components/RouletteDraw";
-import GaraponDraw from "@/components/GaraponDraw";
 import ConfirmDialog from "@/components/ConfirmDialog";
 
 type GameStatus = "draft" | "open" | "playing" | "finished";
@@ -39,8 +38,6 @@ type GameDetail = {
 };
 
 const TOTAL_NUMBERS = 75;
-const ANIM_STYLE_KEY = "vivi-bingo:draw-animation-style";
-type AnimStyle = "roulette" | "garapon";
 
 async function fetchGameDetail(
   gameId: string
@@ -67,22 +64,10 @@ export default function AdminGamePage() {
   const [drawing, setDrawing] = useState(false);
   const [finishing, setFinishing] = useState(false);
   const [confirmingFinish, setConfirmingFinish] = useState(false);
-  const [animStyle, setAnimStyle] = useState<AnimStyle>(() => {
-    if (typeof window === "undefined") {
-      return "roulette";
-    }
-    const saved = window.localStorage.getItem(ANIM_STYLE_KEY);
-    return saved === "roulette" || saved === "garapon" ? saved : "roulette";
-  });
   const [drawSeq, setDrawSeq] = useState(0);
   const [pendingNumber, setPendingNumber] = useState<number | null>(null);
   const frozenRef = useRef(false);
   const pendingGameRef = useRef<GameDetail | null>(null);
-
-  function handleAnimStyleChange(style: AnimStyle) {
-    setAnimStyle(style);
-    window.localStorage.setItem(ANIM_STYLE_KEY, style);
-  }
 
   useEffect(() => {
     let cancelled = false;
@@ -314,77 +299,29 @@ export default function AdminGamePage() {
         <div className="grid grid-cols-1 gap-4.5 lg:grid-cols-[1.2fr_1fr]">
           <div className="flex flex-col gap-5">
             <div className="rounded-2xl border-[1.5px] border-matsuri-border-calm bg-white px-5 py-4.5">
-              <div className="flex flex-wrap items-center justify-between gap-2">
-                <p className="font-heading text-2xl font-bold">直近の抽選番号</p>
-                <div className="flex gap-1 rounded-full border-[1.5px] border-matsuri-border-calm bg-matsuri-cream-soft p-1">
-                  <button
-                    type="button"
-                    onClick={() => handleAnimStyleChange("roulette")}
-                    className={
-                      animStyle === "roulette"
-                        ? "admin-anim-tab active"
-                        : "admin-anim-tab"
-                    }
-                  >
-                    ルーレット
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => handleAnimStyleChange("garapon")}
-                    className={
-                      animStyle === "garapon"
-                        ? "admin-anim-tab active"
-                        : "admin-anim-tab"
-                    }
-                  >
-                    ガラポン
-                  </button>
-                </div>
-              </div>
+              <p className="font-heading text-2xl font-bold">直近の抽選番号</p>
 
-              {animStyle === "roulette" ? (
-                <div className="mt-2.5 flex items-start justify-center gap-5">
-                  <div className="mt-2.5 text-center">
-                    <RouletteDraw
-                      drawSeq={drawSeq}
-                      targetNumber={pendingNumber}
-                      idleNumber={game.lastDrawNumber}
-                      onRevealComplete={handleRevealComplete}
-                    />
-                    <p className="mt-1.5 text-sm font-bold text-matsuri-muted">
-                      抽選回数 {game.drawCount} / {TOTAL_NUMBERS}
-                    </p>
-                  </div>
-                  <button
-                    type="button"
-                    onClick={handleDraw}
-                    disabled={drawing || isFinished || isDrawExhausted}
-                    className="admin-draw-btn flex h-23 w-23 shrink-0 items-center justify-center rounded-full font-heading text-[17px] font-extrabold text-matsuri-cream-soft disabled:opacity-50"
-                  >
-                    {drawing ? "抽選中" : "抽選"}
-                  </button>
-                </div>
-              ) : (
-                <div className="mt-2.5 flex flex-col items-center gap-3">
-                  <GaraponDraw
+              <div className="mt-2.5 flex items-start justify-center gap-5">
+                <div className="mt-2.5 text-center">
+                  <RouletteDraw
                     drawSeq={drawSeq}
                     targetNumber={pendingNumber}
                     idleNumber={game.lastDrawNumber}
                     onRevealComplete={handleRevealComplete}
                   />
-                  <p className="text-sm font-bold text-matsuri-muted">
+                  <p className="mt-1.5 text-sm font-bold text-matsuri-muted">
                     抽選回数 {game.drawCount} / {TOTAL_NUMBERS}
                   </p>
-                  <button
-                    type="button"
-                    onClick={handleDraw}
-                    disabled={drawing || isFinished || isDrawExhausted}
-                    className="admin-draw-btn flex h-23 w-23 shrink-0 items-center justify-center rounded-full font-heading text-[17px] font-extrabold text-matsuri-cream-soft disabled:opacity-50"
-                  >
-                    {drawing ? "抽選中" : "抽選"}
-                  </button>
                 </div>
-              )}
+                <button
+                  type="button"
+                  onClick={handleDraw}
+                  disabled={drawing || isFinished || isDrawExhausted}
+                  className="admin-draw-btn flex h-23 w-23 shrink-0 items-center justify-center rounded-full font-heading text-[17px] font-extrabold text-matsuri-cream-soft disabled:opacity-50"
+                >
+                  {drawing ? "抽選中" : "抽選"}
+                </button>
+              </div>
             </div>
 
             <div className="rounded-2xl border-[1.5px] border-matsuri-border-calm bg-white px-5 py-4.5">
