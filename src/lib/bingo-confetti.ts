@@ -1,6 +1,7 @@
 import confetti from "canvas-confetti";
 
-const CELEBRATION_DURATION_MS = 1500;
+// 歓声（cheers_and_applause.mp3 ≈4.1s）に合わせた長さ。噴出終了後も紙吹雪が落ちきるまで1〜2秒残るので、音より少し短めにしている
+const CELEBRATION_DURATION_MS = 3500;
 const COLORS = ["#ffd700", "#ffffff", "#b8860b"];
 
 // 画面左右下からクラッカーのように紙吹雪を連射する

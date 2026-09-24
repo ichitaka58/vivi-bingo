@@ -50,6 +50,9 @@ const REVEAL_HOLD_MS = 4000;
 const REACH_VOICE_SRC = "/sounds/reach.mp3";
 const REACH_VOICE_DELAY_MS = 400;
 
+// ビンゴ成立時の歓声＋拍手。クラッカー演出の発火と同時に再生する
+const BINGO_CHEER_SRC = "/sounds/cheers_and_applause.mp3";
+
 // リーチライン（セル座標の列）を比較可能な文字列キーに変換する。
 // 「新たなリーチLINEができたか」を前回との差分で判定するために使う。
 function reachLineKey(line: { col: number; row: number }[]): string {
@@ -235,6 +238,7 @@ export default function BoardPage() {
   // 合わせて再生する。ブラウザの自動再生ブロック対策として、初回のユーザー操作で一度だけ
   // 無音再生→即停止して要素を解錠しておく。
   const reachAudioRef = useRef<HTMLAudioElement | null>(null);
+  const bingoAudioRef = useRef<HTMLAudioElement | null>(null); // ビンゴ歓声。リーチ音声と同じく初回操作で解錠する
 
   // ボード/ゲーム情報の取得＋Supabase Realtime購読。
   // 新しく当たったマスを検出してflashingCellsに積み、3秒後に自動で外す（＝当選フラッシュ演出）。
@@ -446,6 +450,11 @@ export default function BoardPage() {
     }
     bingoCelebratedRef.current = true;
     confettiCancelRef.current = fireBingoCelebration();
+    const audio = bingoAudioRef.current;
+    if (audio) {
+      audio.currentTime = 0;
+      audio.play().catch(() => {});
+    }
   }, [board?.isBingo, flashingCells.size]);
 
   // アンマウント時に発火中のクラッカー演出を止める
@@ -455,12 +464,16 @@ export default function BoardPage() {
     };
   }, []);
 
-  // リーチ音声の初期化と、自動再生ブロック対策の解錠。
-  // 最初の pointerdown を1回だけ拾い、無音で play→pause して以降の play() を通す。
+  // リーチ音声・ビンゴ歓声の初期化と、自動再生ブロック対策の解錠。
+  // 最初の pointerdown を1回だけ拾い、各音声を無音で play→pause して以降の play() を通す。
   useEffect(() => {
-    const audio = new Audio(REACH_VOICE_SRC);
-    audio.preload = "auto";
-    reachAudioRef.current = audio;
+    const reachAudio = new Audio(REACH_VOICE_SRC);
+    reachAudio.preload = "auto";
+    reachAudioRef.current = reachAudio;
+    const bingoAudio = new Audio(BINGO_CHEER_SRC);
+    bingoAudio.preload = "auto";
+    bingoAudioRef.current = bingoAudio;
+    const audios = [reachAudio, bingoAudio];
 
     let unlocked = false;
     const unlock = () => {
@@ -469,25 +482,28 @@ export default function BoardPage() {
       }
       unlocked = true;
       window.removeEventListener("pointerdown", unlock);
-      const restoreMuted = audio.muted;
-      audio.muted = true;
-      audio
-        .play()
-        .then(() => {
-          audio.pause();
-          audio.currentTime = 0;
-          audio.muted = restoreMuted;
-        })
-        .catch(() => {
-          audio.muted = restoreMuted;
-        });
+      audios.forEach((audio) => {
+        const restoreMuted = audio.muted;
+        audio.muted = true;
+        audio
+          .play()
+          .then(() => {
+            audio.pause();
+            audio.currentTime = 0;
+            audio.muted = restoreMuted;
+          })
+          .catch(() => {
+            audio.muted = restoreMuted;
+          });
+      });
     };
     window.addEventListener("pointerdown", unlock);
 
     return () => {
       window.removeEventListener("pointerdown", unlock);
-      audio.pause();
+      audios.forEach((audio) => audio.pause());
       reachAudioRef.current = null;
+      bingoAudioRef.current = null;
     };
   }, []);
 
