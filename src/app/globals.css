@@ -330,7 +330,7 @@ body {
   }
 }
 
-/* リーチ中の演出: 縁日の金魚すくいモチーフの金魚がボード上を右から左へ横切る */
+/* リーチ中の演出: 縁日の金魚が大きな群れになってボード上を右から左へ横切る */
 .board-fish-layer {
   position: absolute;
   inset: 0;
@@ -338,27 +338,67 @@ body {
   pointer-events: none;
 }
 
+/* 1匹ぶんの横移動レーン。幅をボードいっぱいに取り、移動量をレーン幅基準にすることで、
+   魚のサイズや端末幅に関わらず必ず左端まで抜け切るようにしている。 */
+.board-fish-track {
+  position: absolute;
+  left: 0;
+  right: 0;
+  height: 0;
+  animation: board-fish-swim 1.6s linear both;
+}
+
 .board-fish {
   position: absolute;
-  right: 0;
-  opacity: 0;
-  animation: board-fish-swim 1.6s ease-in-out both;
+  left: 100%;
+  top: 0;
+  animation: board-fish-bob 1s ease-in-out infinite;
+}
+
+.board-fish svg {
+  display: block;
+  width: 100%;
+  height: 100%;
+  /* 尾びれ側を支点に振って、泳いでいるように見せる */
+  transform-origin: 80% 50%;
+  animation: board-fish-wiggle 0.32s ease-in-out infinite;
 }
 
 @keyframes board-fish-swim {
-  0% {
-    transform: translateX(140%);
-    opacity: 0;
+  from {
+    transform: translateX(0);
   }
-  14% {
-    opacity: 0.68;
+  to {
+    /* -100%（レーン＝ボード幅ぶん）に魚の実寸を足し、どのサイズでも左端を抜け切らせる */
+    transform: translateX(calc(-100% - var(--fish-width)));
   }
-  82% {
-    opacity: 0.68;
-  }
+}
+
+@keyframes board-fish-bob {
+  0%,
   100% {
-    transform: translateX(-900%);
-    opacity: 0;
+    transform: translateY(-1.5px);
+  }
+  50% {
+    transform: translateY(1.5px);
+  }
+}
+
+@keyframes board-fish-wiggle {
+  0%,
+  100% {
+    transform: rotate(-5deg);
+  }
+  50% {
+    transform: rotate(5deg);
+  }
+}
+
+/* 演出を減らす設定の端末では、揺れを止めて横切るだけにする */
+@media (prefers-reduced-motion: reduce) {
+  .board-fish,
+  .board-fish svg {
+    animation: none;
   }
 }
 

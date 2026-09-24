@@ -56,37 +56,103 @@ function reachLineKey(line: { col: number; row: number }[]): string {
   return line.map(({ col, row }) => `${col}-${row}`).join(",");
 }
 
-// リーチ中に右から左へ横切る金魚。位置・サイズ・タイミングはデザイン確定版のモックアップから移植
+// リーチ中に右から左へ横切る金魚の群れ。小さめの金魚が密集したかたまりで
+// ボードを通過する。奥（小さい・薄い・遅い）から
+// 手前（大きい・濃い・速い）までの3層で構成し、視差で奥行きを出す。
 type FishConfig = {
   top: string;
   width: number;
   height: number;
+  opacity: number;
   delay: string;
   duration: string;
+  wiggleDuration: string;
+  bobDuration: string;
   color: string;
 };
 
-const FISH: FishConfig[] = [
-  { top: "4%", width: 52, height: 26, delay: "0.15s", duration: "1.5s", color: "#FFC93C" },
-  { top: "10%", width: 60, height: 30, delay: "0.30s", duration: "1.7s", color: "#E11D2E" },
-  { top: "16%", width: 44, height: 22, delay: "0.42s", duration: "1.4s", color: "#B3121F" },
-  { top: "22%", width: 56, height: 28, delay: "0.58s", duration: "1.6s", color: "#FFC93C" },
-  { top: "29%", width: 48, height: 24, delay: "0.70s", duration: "1.5s", color: "#E11D2E" },
-  { top: "35%", width: 62, height: 31, delay: "0.85s", duration: "1.8s", color: "#FFC93C" },
-  { top: "41%", width: 40, height: 20, delay: "0.95s", duration: "1.4s", color: "#B3121F" },
-  { top: "47%", width: 58, height: 29, delay: "1.10s", duration: "1.6s", color: "#E11D2E" },
-  { top: "53%", width: 50, height: 25, delay: "1.25s", duration: "1.5s", color: "#FFC93C" },
-  { top: "59%", width: 60, height: 30, delay: "1.35s", duration: "1.7s", color: "#B3121F" },
-  { top: "65%", width: 46, height: 23, delay: "1.50s", duration: "1.4s", color: "#E11D2E" },
-  { top: "71%", width: 56, height: 28, delay: "1.65s", duration: "1.6s", color: "#FFC93C" },
-  { top: "77%", width: 52, height: 26, delay: "1.80s", duration: "1.5s", color: "#B3121F" },
-  { top: "83%", width: 62, height: 31, delay: "1.95s", duration: "1.8s", color: "#E11D2E" },
-  { top: "89%", width: 44, height: 22, delay: "2.10s", duration: "1.4s", color: "#FFC93C" },
-  { top: "94%", width: 58, height: 29, delay: "2.25s", duration: "1.6s", color: "#B3121F" },
+type FishLayer = {
+  count: number;
+  minWidth: number;
+  maxWidth: number;
+  opacity: number;
+  minDuration: number;
+  maxDuration: number;
+};
+
+const FISH_LAYERS: FishLayer[] = [
+  { count: 56, minWidth: 24, maxWidth: 36, opacity: 0.3, minDuration: 1.9, maxDuration: 2.15 },
+  { count: 44, minWidth: 38, maxWidth: 54, opacity: 0.52, minDuration: 1.65, maxDuration: 1.9 },
+  { count: 26, minWidth: 58, maxWidth: 82, opacity: 0.78, minDuration: 1.45, maxDuration: 1.7 },
 ];
 
+const FISH_COLORS = ["#FFC93C", "#E11D2E", "#B3121F", "#FF9E2C"];
+
+// 群れの横の厚み（秒）。各個体のアニメーション開始をこの幅だけずらすことで、
+// 速度をそろえたまま「かたまり」としての奥行きを作る。
+const FISH_SCHOOL_SPREAD_S = 0.95;
+
+// シード固定のPRNG（mulberry32）。SSRとクライアントで必ず同じ配置を生成させ、
+// hydrationの不一致を防ぐ。
+function createSeededRandom(seed: number): () => number {
+  let state = seed >>> 0;
+  return () => {
+    state = (state + 0x6d2b79f5) >>> 0;
+    let t = Math.imul(state ^ (state >>> 15), 1 | state);
+    t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t;
+    return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+  };
+}
+
+function buildFishSchool(): FishConfig[] {
+  const random = createSeededRandom(20260922);
+  const school: FishConfig[] = [];
+
+  FISH_LAYERS.forEach((layer) => {
+    for (let index = 0; index < layer.count; index += 1) {
+      // 縦位置は層ごとに等分してからジッターを足す。完全なランダムより偏りが出にくく、
+      // ボード全面がまんべんなく埋まる。
+      const top = ((index + random()) / layer.count) * 94 + 2;
+      const width = Math.round(
+        layer.minWidth + random() * (layer.maxWidth - layer.minWidth)
+      );
+      // 乱数2つの平均でベル型に寄せ、群れの中央を密に・前後を疎にする
+      const spread = ((random() + random()) / 2) * FISH_SCHOOL_SPREAD_S;
+
+      school.push({
+        top: `${top.toFixed(1)}%`,
+        width,
+        height: Math.round(width / 2),
+        opacity: layer.opacity,
+        delay: `${spread.toFixed(2)}s`,
+        duration: `${(
+          layer.minDuration + random() * (layer.maxDuration - layer.minDuration)
+        ).toFixed(2)}s`,
+        wiggleDuration: `${(0.26 + random() * 0.14).toFixed(2)}s`,
+        bobDuration: `${(0.8 + random() * 0.5).toFixed(2)}s`,
+        color: FISH_COLORS[Math.floor(random() * FISH_COLORS.length)],
+      });
+    }
+  });
+
+  return school;
+}
+
+const FISH = buildFishSchool();
+
+// 眼を描き込むサイズのしきい値。これより小さい個体では潰れて見えないので省く
+const FISH_EYE_MIN_WIDTH = 40;
+
+// 金魚のシルエット（左向き）。胴体から尾びれまでを自己交差のない1本の輪郭で描く
 const FISH_PATH =
-  "M2,16 C2,8 14,4 26,4 C40,4 50,10 50,16 C50,22 40,28 26,28 C14,28 2,24 2,16 Z M50,16 L62,6 L62,26 Z";
+  "M2,16 C2,10.5 11,6.5 26,6.5 C38,6.5 45,10 48,15 C52,10.5 57,6 62,3 " +
+  "C59.5,9 58,13 57.5,16 C58,19 59.5,23 62,29 C57,26 52,21.5 48,17 " +
+  "C45,22 38,25.5 26,25.5 C11,25.5 2,21.5 2,16 Z";
+
+// 背びれと腹びれ。胴体と少し重なるため、輪郭とは別パスにして塗り分けの破綻を避ける
+const FISH_FIN_PATH =
+  "M23,8 C28,2.5 35,1.5 41,4 C35,5 29,6 26,8.5 Z " +
+  "M26,24.5 C29,28.5 33,29.5 37,28 C33,26.5 30,25.5 28,24.5 Z";
 
 // ビンゴ演出: 中央のBINGO!!文字の周りに飛び散る紙吹雪風の粒
 type SparkConfig = {
@@ -632,21 +698,41 @@ export default function BoardPage() {
                 className={`board-fish-layer overflow-hidden rounded-xl ${reachZoneVisible ? "" : "invisible"}`}
               >
                 {FISH.map((fish, index) => (
-                  <svg
+                  <div
                     key={index}
-                    className="board-fish"
-                    style={{
-                      top: fish.top,
-                      width: fish.width,
-                      height: fish.height,
-                      animationDelay: fish.delay,
-                      animationDuration: fish.duration,
-                    }}
-                    viewBox="0 0 64 32"
+                    className="board-fish-track"
+                    style={
+                      {
+                        top: fish.top,
+                        animationDelay: fish.delay,
+                        animationDuration: fish.duration,
+                        // 魚の実寸。左端から完全に抜け切る移動量の算出にCSS側で使う
+                        "--fish-width": `${fish.width}px`,
+                      } as CSSProperties
+                    }
                   >
-                    <path d={FISH_PATH} fill={fish.color} />
-                    <circle cx="10" cy="13" r="1.6" fill="#7A0D16" />
-                  </svg>
+                    <div
+                      className="board-fish"
+                      style={{
+                        width: fish.width,
+                        height: fish.height,
+                        marginTop: -fish.height / 2,
+                        opacity: fish.opacity,
+                        animationDuration: fish.bobDuration,
+                      }}
+                    >
+                      <svg
+                        viewBox="0 0 64 32"
+                        style={{ animationDuration: fish.wiggleDuration }}
+                      >
+                        <path d={FISH_PATH} fill={fish.color} />
+                        <path d={FISH_FIN_PATH} fill={fish.color} opacity="0.75" />
+                        {fish.width >= FISH_EYE_MIN_WIDTH && (
+                          <circle cx="11" cy="14" r="1.7" fill="#7A0D16" />
+                        )}
+                      </svg>
+                    </div>
+                  </div>
                 ))}
               </div>
             )}
