@@ -143,6 +143,15 @@ function buildFishSchool(): FishConfig[] {
 
 const FISH = buildFishSchool();
 
+// 最後の1匹がボードを抜け切るまでの時間（ms）。これを過ぎたら魚群レイヤーごと外す。
+// 各魚の上下動・尾びれの振りは無限ループのため、残しておくと画面外で動き続けて端末が発熱する。
+const FISH_PASS_MS =
+  Math.ceil(
+    Math.max(
+      ...FISH.map((fish) => parseFloat(fish.delay) + parseFloat(fish.duration))
+    ) * 1000
+  ) + 200;
+
 // 眼を描き込むサイズのしきい値。これより小さい個体では潰れて見えないので省く
 const FISH_EYE_MIN_WIDTH = 40;
 
@@ -234,6 +243,8 @@ export default function BoardPage() {
   // reachAnimKey: 演出を再生した回数。バナー/金魚のkeyに使い、増分のたびに新規DOM要素として再マウントさせる
   const [pendingNewReachLine, setPendingNewReachLine] = useState(false);
   const [reachAnimKey, setReachAnimKey] = useState(0);
+  // 魚群が横切り終えた演出回（reachAnimKeyの値）。一致している間は魚群レイヤーを描画しない
+  const [fishPassedKey, setFishPassedKey] = useState(0);
   // リーチ音声。<audio>要素をrefで1つだけ保持し、reachAnimKeyの増加（＝新しいリーチLINE）に
   // 合わせて再生する。ブラウザの自動再生ブロック対策として、初回のユーザー操作で一度だけ
   // 無音再生→即停止して要素を解錠しておく。
@@ -362,6 +373,7 @@ export default function BoardPage() {
       bingoCelebratedRef.current = false;
       setPendingNewReachLine(false);
       setReachAnimKey(0);
+      setFishPassedKey(0);
       setFlashingCells(new Set());
       displayedDrawCountRef.current = null;
       revealHoldRef.current = false;
@@ -524,6 +536,17 @@ export default function BoardPage() {
     return () => clearTimeout(timeoutId);
   }, [reachAnimKey]);
 
+  // 魚群が横切り終えたらレイヤーを外し、画面外で動き続けるアニメーションを止める
+  useEffect(() => {
+    if (reachAnimKey === 0) {
+      return;
+    }
+    const timeoutId = setTimeout(() => {
+      setFishPassedKey(reachAnimKey);
+    }, FISH_PASS_MS);
+    return () => clearTimeout(timeoutId);
+  }, [reachAnimKey]);
+
   if (loading) {
     return (
       <div className="flex flex-1 items-center justify-center bg-matsuri-cream px-4 py-16 font-round">
@@ -575,6 +598,7 @@ export default function BoardPage() {
   }
   const reachZoneVisible = board.isReach && celebrationReady;
   const reachZoneMounted = board.isReach && reachAnimKey > 0;
+  const fishSwimming = reachZoneMounted && fishPassedKey !== reachAnimKey;
 
   return (
     <div className="relative flex w-full flex-1 flex-col overflow-hidden bg-matsuri-cream font-round text-matsuri-navy">
@@ -708,7 +732,7 @@ export default function BoardPage() {
             </div>
           )}
           <div className="relative">
-            {reachZoneMounted && (
+            {fishSwimming && (
               <div
                 key={reachAnimKey}
                 className={`board-fish-layer overflow-hidden rounded-xl ${reachZoneVisible ? "" : "invisible"}`}
