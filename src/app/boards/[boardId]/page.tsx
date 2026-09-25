@@ -672,7 +672,7 @@ export default function BoardPage() {
           </div>
         )}
 
-        <div className="relative mt-12">
+        <div className="relative mt-6">
           {reachZoneMounted && (
             <div
               className={`board-reach-zone ${reachZoneVisible ? "" : "invisible"}`}
