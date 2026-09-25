@@ -196,7 +196,7 @@ body {
 .board-reach-zone {
   position: absolute;
   left: 50%;
-  top: -40px;
+  top: -44px;
   width: 0;
   height: 0;
   z-index: 20;
