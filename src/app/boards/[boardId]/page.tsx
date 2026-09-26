@@ -1,20 +1,18 @@
 "use client";
 
-import { useEffect, useRef, useState, type CSSProperties } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useParams } from "next/navigation";
 import { supabase } from "@/lib/supabase";
 import { judgeBingo } from "@/lib/bingo-judge";
 import { fireBingoCelebration } from "@/lib/bingo-confetti";
+import BingoBurst from "@/components/BingoBurst";
+import BoardDecorations from "@/components/BoardDecorations";
+import DrawHistory, { type DrawEntry } from "@/components/DrawHistory";
 import FishSchool from "@/components/FishSchool";
 
 type GameStatus = "draft" | "open" | "playing" | "finished";
 type BoardNumbers = (number | null)[][];
 type BoardMarked = boolean[][];
-
-type DrawEntry = {
-  number: number;
-  drawOrder: number;
-};
 
 type Board = {
   boardId: string;
@@ -60,26 +58,6 @@ function reachLineKey(line: { col: number; row: number }[]): string {
   return line.map(({ col, row }) => `${col}-${row}`).join(",");
 }
 
-// ビンゴ演出: 中央のBINGO!!文字の周りに飛び散る紙吹雪風の粒
-type SparkConfig = {
-  tx: number;
-  ty: number;
-  color: string;
-  delay: string;
-  shape: "dot" | "chip";
-};
-
-const BINGO_SPARKS: SparkConfig[] = [
-  { tx: 0, ty: -100, color: "#FFD700", delay: "0.04s", shape: "dot" },
-  { tx: 72, ty: -72, color: "#E11D2E", delay: "0.08s", shape: "chip" },
-  { tx: 100, ty: 0, color: "#FFC93C", delay: "0.02s", shape: "dot" },
-  { tx: 72, ty: 72, color: "#2F6FED", delay: "0.10s", shape: "chip" },
-  { tx: 0, ty: 100, color: "#E11D2E", delay: "0.06s", shape: "dot" },
-  { tx: -72, ty: 72, color: "#FFD700", delay: "0.12s", shape: "chip" },
-  { tx: -100, ty: 0, color: "#FFC93C", delay: "0.03s", shape: "dot" },
-  { tx: -72, ty: -72, color: "#E11D2E", delay: "0.09s", shape: "chip" },
-];
-
 async function fetchBoardAndGame(
   boardId: string
 ): Promise<{ board?: Board; game?: GameSummary; error?: string }> {
@@ -115,7 +93,6 @@ export default function BoardPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [flashingCells, setFlashingCells] = useState<Set<string>>(new Set());
-  const historyScrollRef = useRef<HTMLDivElement | null>(null);
   const previousMarkedRef = useRef<BoardMarked | null>(null);
   const flashTimeoutsRef = useRef<Set<ReturnType<typeof setTimeout>>>(
     new Set()
@@ -335,15 +312,6 @@ export default function BoardPage() {
     };
   }, [boardId]);
 
-  // 抽選履歴が増えるたびに横スクロールを右端（最新）まで動かす
-  useEffect(() => {
-    const el = historyScrollRef.current;
-    if (!el) {
-      return;
-    }
-    el.scrollLeft = el.scrollWidth;
-  }, [game?.drawHistory.length]);
-
   // ビンゴ成立時にクラッカー演出を1回だけ発火する。
   // 当選フラッシュが残っている間（flashingCells.size > 0）は演出を待機し、
   // フラッシュが終わってから発火する（celebrationReadyと同じ考え方）
@@ -481,47 +449,7 @@ export default function BoardPage() {
 
   return (
     <div className="relative flex w-full flex-1 flex-col overflow-hidden bg-matsuri-cream font-round text-matsuri-navy">
-      <svg
-        className="pointer-events-none absolute -top-3 -right-2 z-0"
-        width="90"
-        height="90"
-        viewBox="0 0 90 90"
-      >
-        <circle cx="45" cy="45" r="30" fill="#E11D2E" opacity="0.18" />
-      </svg>
-      <svg
-        className="pointer-events-none absolute top-10 -left-4 z-0"
-        width="50"
-        height="50"
-        viewBox="0 0 50 50"
-      >
-        <polygon points="25,2 48,45 2,45" fill="#2F6FED" opacity="0.12" />
-      </svg>
-      <svg
-        className="pointer-events-none absolute top-40 right-2 z-0"
-        width="26"
-        height="26"
-        viewBox="0 0 26 26"
-      >
-        <circle cx="13" cy="13" r="13" fill="#FF3D81" opacity="0.22" />
-      </svg>
-      <svg
-        className="pointer-events-none absolute bottom-28 left-1 z-0"
-        width="34"
-        height="34"
-        viewBox="0 0 34 34"
-      >
-        <rect
-          x="4"
-          y="4"
-          width="26"
-          height="26"
-          rx="8"
-          fill="#FFC93C"
-          opacity="0.2"
-          transform="rotate(18 17 17)"
-        />
-      </svg>
+      <BoardDecorations />
 
       <div className="relative z-10 mx-auto flex w-full max-w-md flex-1 flex-col gap-6 px-5 py-7">
         <div className="flex flex-col gap-1.5">
@@ -549,31 +477,7 @@ export default function BoardPage() {
           </p>
         )}
 
-        {game.drawHistory.length > 0 && (
-          <div className="relative rounded-2xl border-2 border-matsuri-border-gold bg-white pt-6 pr-3 pb-3 pl-3">
-            <span className="absolute top-2 left-3.5 font-heading text-[10px] font-bold tracking-widest text-matsuri-label">
-              抽選番号
-            </span>
-            <div
-              ref={historyScrollRef}
-              className="flex items-center gap-2.5 overflow-x-auto py-1.5"
-            >
-              {game.drawHistory.map((draw, index) => {
-                const isLatest = index === game.drawHistory.length - 1;
-                return (
-                  <div
-                    key={draw.number}
-                    className={
-                      isLatest ? "board-chip board-chip-latest" : "board-chip"
-                    }
-                  >
-                    {draw.number}
-                  </div>
-                );
-              })}
-            </div>
-          </div>
-        )}
+        <DrawHistory draws={game.drawHistory} />
 
         <div className="relative mt-6">
           {reachZoneMounted && (
@@ -589,27 +493,7 @@ export default function BoardPage() {
               </div>
             </div>
           )}
-          {board.isBingo && celebrationReady && (
-            <div className="board-bingo-burst">
-              <div className="board-bingo-spark-field">
-                {BINGO_SPARKS.map((spark, index) => (
-                  <div
-                    key={index}
-                    className={`board-bingo-spark ${spark.shape}`}
-                    style={
-                      {
-                        "--tx": `${spark.tx}px`,
-                        "--ty": `${spark.ty}px`,
-                        background: spark.color,
-                        animationDelay: spark.delay,
-                      } as CSSProperties
-                    }
-                  />
-                ))}
-              </div>
-              <span className="board-bingo-text">BINGO!!</span>
-            </div>
-          )}
+          {board.isBingo && celebrationReady && <BingoBurst />}
           <div className="relative">
             {reachZoneMounted && (
               <FishSchool key={reachAnimKey} visible={reachZoneVisible} />
