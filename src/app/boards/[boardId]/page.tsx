@@ -4,6 +4,7 @@ import { useEffect, useRef, useState } from "react";
 import { useParams } from "next/navigation";
 import { supabase } from "@/lib/supabase";
 import { judgeBingo } from "@/lib/bingo-judge";
+import { findNewlyMarkedCells, hasNewReachLine } from "@/lib/board-diff";
 import { fireBingoCelebration } from "@/lib/bingo-confetti";
 import BingoBurst from "@/components/BingoBurst";
 import BoardDecorations from "@/components/BoardDecorations";
@@ -51,12 +52,6 @@ const REACH_VOICE_DELAY_MS = 400;
 
 // ビンゴ成立時の歓声＋拍手。クラッカー演出の発火と同時に再生する
 const BINGO_CHEER_SRC = "/sounds/cheers_and_applause.mp3";
-
-// リーチライン（セル座標の列）を比較可能な文字列キーに変換する。
-// 「新たなリーチLINEができたか」を前回との差分で判定するために使う。
-function reachLineKey(line: { col: number; row: number }[]): string {
-  return line.map(({ col, row }) => `${col}-${row}`).join(",");
-}
 
 async function fetchBoardAndGame(
   boardId: string
@@ -133,14 +128,10 @@ export default function BoardPage() {
       // 2回目以降で「前回false→今回true」になったマスだけを新規当選とみなす。
       const prevMarked = previousMarkedRef.current;
       if (prevMarked) {
-        const newlyMarkedKeys: string[] = [];
-        for (let col = 0; col < BOARD_SIZE; col++) {
-          for (let row = 0; row < BOARD_SIZE; row++) {
-            if (nextBoard.marked[col][row] && !prevMarked[col][row]) {
-              newlyMarkedKeys.push(`${col}-${row}`);
-            }
-          }
-        }
+        const newlyMarkedKeys = findNewlyMarkedCells(
+          prevMarked,
+          nextBoard.marked
+        );
         if (newlyMarkedKeys.length > 0) {
           // 新規当選マスをflashingCellsに追加してフラッシュ表示を開始し、
           // 3秒後にそれぞれ個別のタイマーで取り除く（＝フラッシュ終了→通常の当選マス表示へ）
@@ -164,20 +155,10 @@ export default function BoardPage() {
             flashTimeouts.add(timeoutId);
           });
         }
-
-        // 前回になかったリーチLINEが新たに増えていたら、リーチ演出（バナー/金魚）を
-        // 再生対象としてマークする（既存のリーチLINEが残っているだけでは発火させない）
-        const prevReachKeys = new Set(
-          judgeBingo(prevMarked).reachLines.map(reachLineKey)
-        );
-        const hasNewReachLine = judgeBingo(nextBoard.marked).reachLines.some(
-          (line) => !prevReachKeys.has(reachLineKey(line))
-        );
-        if (hasNewReachLine) {
-          setPendingNewReachLine(true);
-        }
-      } else if (judgeBingo(nextBoard.marked).reachLines.length > 0) {
-        // 初回反映時点で既にリーチ状態だった場合も、演出は表示する
+      }
+      // 前回になかったリーチLINEが新たに増えていたら、リーチ演出（バナー/金魚）を
+      // 再生対象としてマークする（初回反映時点で既にリーチ状態だった場合も表示する）
+      if (hasNewReachLine(prevMarked, nextBoard.marked)) {
         setPendingNewReachLine(true);
       }
       previousMarkedRef.current = nextBoard.marked;
