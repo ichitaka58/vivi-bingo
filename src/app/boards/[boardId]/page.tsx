@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef } from "react";
 import { useParams } from "next/navigation";
 import { judgeBingo } from "@/lib/bingo-judge";
 import { fireBingoCelebration } from "@/lib/bingo-confetti";
@@ -27,22 +27,16 @@ export default function BoardPage() {
 
   const bingoCelebratedRef = useRef(false); // このボードでクラッカー演出を発火済みか（1回だけ発火させるため）
   const confettiCancelRef = useRef<(() => void) | null>(null); // 発火中のクラッカー演出を止める関数
-  // リーチ演出（バナー/金魚）を新たなリーチLINEの発生ごとに再生するための状態。
-  // pendingNewReachLine: 前回取得時からリーチLINEが増えた（まだ演出未消化）ことを示すフラグ
-  // reachAnimKey: 演出を再生した回数。バナー/金魚のkeyに使い、増分のたびに新規DOM要素として再マウントさせる
-  const [pendingNewReachLine, setPendingNewReachLine] = useState(false);
-  const [reachAnimKey, setReachAnimKey] = useState(0);
+  // ボード/ゲーム情報の取得＋Realtime購読。reachAnimKeyは新たなリーチLINEの演出を再生するたびに増える
+  const { board, game, loading, error, flashingCells, reachAnimKey } =
+    useBoardSync(boardId);
   // 効果音。リーチ音声はreachAnimKeyの増加に合わせてフック内で自動再生される
   const { playBingoCheer } = useBoardAudio(reachAnimKey);
-  // ボード/ゲーム情報の取得＋Realtime購読。boardId切り替え時は演出状態もリセットする
-  const { board, game, loading, error, flashingCells } = useBoardSync(boardId, {
-    onReset: () => {
-      bingoCelebratedRef.current = false;
-      setPendingNewReachLine(false);
-      setReachAnimKey(0);
-    },
-    onNewReachLine: () => setPendingNewReachLine(true),
-  });
+
+  // ボードが切り替わったらクラッカー演出を再び発火できるようにする
+  useEffect(() => {
+    bingoCelebratedRef.current = false;
+  }, [boardId]);
 
   // ビンゴ成立時にクラッカー演出を1回だけ発火する。
   // 当選フラッシュが残っている間（flashingCells.size > 0）は演出を待機し、
@@ -103,15 +97,8 @@ export default function BoardPage() {
       line.map(({ col, row }) => `${col}-${row}`)
     )
   );
-  // リーチ演出（バナー/金魚）: 新たなリーチLINEが発生した（pendingNewReachLine）場合のみ、
-  // フラッシュ終了を待ってreachAnimKeyを進める。バナー/金魚はkey={reachAnimKey}で
-  // マウントしているため、増分のたびに新規DOM要素として再マウント＝演出が再生される。
-  // 新たなLINEが発生していないフラッシュ（celebrationReadyの単なるtrue/false切り替え）では
-  // reachAnimKeyが変わらないため、既存のDOM要素が維持され演出はやり直されない。
-  if (celebrationReady && pendingNewReachLine) {
-    setReachAnimKey((key) => key + 1);
-    setPendingNewReachLine(false);
-  }
+  // リーチ演出（バナー/金魚）: バナー/金魚はkey={reachAnimKey}でマウントしているため、
+  // reachAnimKeyの増分のたびに新規DOM要素として再マウント＝演出が再生される。
   const reachZoneVisible = board.isReach && celebrationReady;
   const reachZoneMounted = board.isReach && reachAnimKey > 0;
 
