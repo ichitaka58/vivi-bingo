@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useEffectEvent, useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { supabase } from "@/lib/supabase";
 import type { BoardMarked, BoardNumbers } from "@/lib/bingo-board";
 import { findNewlyMarkedCells, hasNewReachLine } from "@/lib/board-diff";
@@ -57,17 +57,14 @@ async function fetchBoardAndGame(
 
 // 参加者ボードのデータ同期（初回取得＋Supabase Realtime購読＋抽選番号の反映保留）。
 // 新しく当たったマスを検出してflashingCellsに積み、3秒後に自動で外す（＝当選フラッシュ演出）。
-//   onReset: boardIdが変わって状態をリセットするときに呼ばれる（呼び出し側の演出状態のリセット用）
-//   onNewReachLine: 前回反映時から新しいリーチLINEが増えたときに呼ばれる
-export function useBoardSync(
-  boardId: string,
-  handlers: { onReset: () => void; onNewReachLine: () => void }
-): {
+// 新しいリーチLINEの発生はフラッシュ終了を待ってreachAnimKeyの増加として返す（＝リーチ演出の再生合図）。
+export function useBoardSync(boardId: string): {
   board: Board | null;
   game: GameSummary | null;
   loading: boolean;
   error: string | null;
   flashingCells: Set<string>;
+  reachAnimKey: number;
 } {
   const [board, setBoard] = useState<Board | null>(null);
   const [game, setGame] = useState<GameSummary | null>(null);
@@ -88,10 +85,11 @@ export function useBoardSync(
   const pendingUpdateRef = useRef<{ board: Board; game: GameSummary } | null>(
     null
   );
-  // 呼び出し側のコールバックは毎レンダー作り直されるため、useEffectEventで包んで
-  // 下のuseEffectの依存配列に含めずに最新のものを呼べるようにする
-  const onReset = useEffectEvent(handlers.onReset);
-  const onNewReachLine = useEffectEvent(handlers.onNewReachLine);
+  // リーチ演出（バナー/金魚/音声）を新たなリーチLINEの発生ごとに再生するための状態。
+  // pendingNewReachLine: 前回取得時からリーチLINEが増えた（まだ演出未消化）ことを示すフラグ
+  // reachAnimKey: 演出を再生した回数。バナー/金魚のkeyに使い、増分のたびに新規DOM要素として再マウントさせる
+  const [pendingNewReachLine, setPendingNewReachLine] = useState(false);
+  const [reachAnimKey, setReachAnimKey] = useState(0);
 
   useEffect(() => {
     let cancelled = false;
@@ -132,10 +130,10 @@ export function useBoardSync(
           });
         }
       }
-      // 前回になかったリーチLINEが新たに増えていたら、呼び出し側へ通知する
-      // （初回反映時点で既にリーチ状態だった場合も通知する）
+      // 前回になかったリーチLINEが新たに増えていたら、リーチ演出（バナー/金魚）を
+      // 再生対象としてマークする（初回反映時点で既にリーチ状態だった場合も表示する）
       if (hasNewReachLine(prevMarked, nextBoard.marked)) {
-        onNewReachLine();
+        setPendingNewReachLine(true);
       }
       previousMarkedRef.current = nextBoard.marked;
 
@@ -196,7 +194,8 @@ export function useBoardSync(
     // その後はboards/draws/gamesテーブルの変更をRealtimeで購読してrefresh()を呼び直す
     async function run() {
       previousMarkedRef.current = null;
-      onReset();
+      setPendingNewReachLine(false);
+      setReachAnimKey(0);
       setFlashingCells(new Set());
       displayedDrawCountRef.current = null;
       revealHoldRef.current = false;
@@ -267,5 +266,13 @@ export function useBoardSync(
     };
   }, [boardId]);
 
-  return { board, game, loading, error, flashingCells };
+  // 新たなリーチLINEが発生した（pendingNewReachLine）場合のみ、フラッシュ終了を待って
+  // reachAnimKeyを進める（抽選直後のマスはまず当選フラッシュを最後まで見せてから演出を出す）。
+  // 新たなLINEが発生していないフラッシュではreachAnimKeyが変わらないため、演出はやり直されない。
+  if (flashingCells.size === 0 && pendingNewReachLine) {
+    setReachAnimKey((key) => key + 1);
+    setPendingNewReachLine(false);
+  }
+
+  return { board, game, loading, error, flashingCells, reachAnimKey };
 }
