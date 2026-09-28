@@ -1,216 +1,38 @@
 "use client";
 
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useState } from "react";
 import { useParams } from "next/navigation";
 import Link from "next/link";
-import { supabase } from "@/lib/supabase";
 import RouletteDraw from "@/components/RouletteDraw";
 import ConfirmDialog from "@/components/ConfirmDialog";
-import UserListCard, { type UserEntry } from "@/components/admin/UserListCard";
-import DrawHistoryCard, {
-  type DrawEntry,
-} from "@/components/admin/DrawHistoryCard";
+import UserListCard from "@/components/admin/UserListCard";
+import DrawHistoryCard from "@/components/admin/DrawHistoryCard";
 import JoinUrlCard from "@/components/admin/JoinUrlCard";
-
-type GameStatus = "draft" | "open" | "playing" | "finished";
-
-type GameDetail = {
-  id: string;
-  title: string;
-  maxBoards: number;
-  boardCount: number;
-  status: GameStatus;
-  joinUrlToken: string;
-  joinExpiresAt: string;
-  createdAt: string;
-  drawCount: number;
-  lastDrawNumber: number | null;
-  drawHistory: DrawEntry[];
-  reachUsers: UserEntry[];
-  bingoUsers: UserEntry[];
-};
+import { useAdminGame } from "@/hooks/useAdminGame";
 
 const TOTAL_NUMBERS = 75;
-
-async function fetchGameDetail(
-  gameId: string
-): Promise<{ game?: GameDetail; error?: string }> {
-  try {
-    const res = await fetch(`/api/games/${gameId}`);
-    const data = await res.json();
-    if (!res.ok) {
-      return { error: data.error?.message ?? "ゲーム情報の取得に失敗しました。" };
-    }
-    return { game: data as GameDetail };
-  } catch {
-    return { error: "通信エラーが発生しました。" };
-  }
-}
 
 export default function AdminGamePage() {
   const params = useParams<{ gameId: string }>();
   const gameId = params.gameId;
 
-  const [game, setGame] = useState<GameDetail | null>(null);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
-  const [drawing, setDrawing] = useState(false);
-  const [finishing, setFinishing] = useState(false);
+  const {
+    game,
+    loading,
+    error,
+    drawing,
+    finishing,
+    drawSeq,
+    pendingNumber,
+    draw,
+    completeReveal,
+    finish,
+  } = useAdminGame(gameId);
   const [confirmingFinish, setConfirmingFinish] = useState(false);
-  const [drawSeq, setDrawSeq] = useState(0);
-  const [pendingNumber, setPendingNumber] = useState<number | null>(null);
-  const frozenRef = useRef(false);
-  const pendingGameRef = useRef<GameDetail | null>(null);
 
-  useEffect(() => {
-    let cancelled = false;
-
-    async function refresh() {
-      const result = await fetchGameDetail(gameId);
-      if (cancelled) {
-        return;
-      }
-      if (result.error) {
-        setError(result.error);
-      } else if (result.game) {
-        if (frozenRef.current) {
-          pendingGameRef.current = result.game;
-        } else {
-          setGame(result.game);
-        }
-      }
-      setLoading(false);
-    }
-
-    async function run() {
-      await refresh();
-      if (cancelled) {
-        return;
-      }
-      const channel = supabase
-        .channel(`admin-game-${gameId}`)
-        .on(
-          "postgres_changes",
-          {
-            event: "*",
-            schema: "public",
-            table: "games",
-            filter: `id=eq.${gameId}`,
-          },
-          () => {
-            refresh();
-          }
-        )
-        .on(
-          "postgres_changes",
-          {
-            event: "*",
-            schema: "public",
-            table: "draws",
-            filter: `game_id=eq.${gameId}`,
-          },
-          () => {
-            refresh();
-          }
-        )
-        .on(
-          "postgres_changes",
-          {
-            event: "*",
-            schema: "public",
-            table: "boards",
-            filter: `game_id=eq.${gameId}`,
-          },
-          () => {
-            refresh();
-          }
-        )
-        .subscribe();
-
-      return () => {
-        supabase.removeChannel(channel);
-      };
-    }
-
-    const cleanupPromise = run();
-    return () => {
-      cancelled = true;
-      cleanupPromise.then((cleanup) => cleanup?.());
-    };
-  }, [gameId]);
-
-  async function handleDraw() {
-    setDrawing(true);
-    setError(null);
-    frozenRef.current = true;
-    pendingGameRef.current = null;
-
-    let number: number;
-    try {
-      const res = await fetch(`/api/games/${gameId}/draws`, {
-        method: "POST",
-      });
-      const data = await res.json();
-      if (!res.ok) {
-        setError(data.error?.message ?? "抽選に失敗しました。");
-        frozenRef.current = false;
-        setDrawing(false);
-        return;
-      }
-      number = data.number as number;
-    } catch {
-      setError("通信エラーが発生しました。");
-      frozenRef.current = false;
-      setDrawing(false);
-      return;
-    }
-
-    // 番号が取れたら演出を開始する。最新のゲーム状態は裏で取得しておき、
-    // 演出が終わるまで(frozenRef)画面への反映を保留して結果を先に見せない。
-    setPendingNumber(number);
-    setDrawSeq((n) => n + 1);
-
-    const result = await fetchGameDetail(gameId);
-    if (result.error) {
-      setError(result.error);
-    } else if (result.game) {
-      pendingGameRef.current = result.game;
-    }
-  }
-
-  const handleRevealComplete = useCallback(() => {
-    frozenRef.current = false;
-    setDrawing(false);
-    if (pendingGameRef.current) {
-      setGame(pendingGameRef.current);
-      pendingGameRef.current = null;
-    }
-  }, []);
-
-  async function handleFinish() {
+  function handleFinish() {
     setConfirmingFinish(false);
-    setFinishing(true);
-    setError(null);
-    try {
-      const res = await fetch(`/api/games/${gameId}/finish`, {
-        method: "POST",
-      });
-      const data = await res.json();
-      if (!res.ok) {
-        setError(data.error?.message ?? "ゲームの終了に失敗しました。");
-        return;
-      }
-      const result = await fetchGameDetail(gameId);
-      if (result.error) {
-        setError(result.error);
-      } else if (result.game) {
-        setGame(result.game);
-      }
-    } catch {
-      setError("通信エラーが発生しました。");
-    } finally {
-      setFinishing(false);
-    }
+    finish();
   }
 
   if (loading) {
@@ -296,7 +118,7 @@ export default function AdminGamePage() {
                     drawSeq={drawSeq}
                     targetNumber={pendingNumber}
                     idleNumber={game.lastDrawNumber}
-                    onRevealComplete={handleRevealComplete}
+                    onRevealComplete={completeReveal}
                   />
                   <p className="mt-1.5 text-sm font-bold text-matsuri-muted">
                     抽選回数 {game.drawCount} / {TOTAL_NUMBERS}
@@ -304,7 +126,7 @@ export default function AdminGamePage() {
                 </div>
                 <button
                   type="button"
-                  onClick={handleDraw}
+                  onClick={draw}
                   disabled={drawing || isFinished || isDrawExhausted}
                   className="admin-draw-btn flex h-23 w-23 shrink-0 items-center justify-center rounded-full font-heading text-[17px] font-extrabold text-matsuri-cream-soft disabled:opacity-50"
                 >
