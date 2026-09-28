@@ -4,18 +4,15 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { useParams } from "next/navigation";
 import Link from "next/link";
 import { supabase } from "@/lib/supabase";
-import QrCode from "@/components/QrCode";
-import CopyButton from "@/components/CopyButton";
 import RouletteDraw from "@/components/RouletteDraw";
 import ConfirmDialog from "@/components/ConfirmDialog";
 import UserListCard, { type UserEntry } from "@/components/admin/UserListCard";
+import DrawHistoryCard, {
+  type DrawEntry,
+} from "@/components/admin/DrawHistoryCard";
+import JoinUrlCard from "@/components/admin/JoinUrlCard";
 
 type GameStatus = "draft" | "open" | "playing" | "finished";
-
-type DrawEntry = {
-  number: number;
-  drawOrder: number;
-};
 
 type GameDetail = {
   id: string;
@@ -234,10 +231,6 @@ export default function AdminGamePage() {
     );
   }
 
-  const joinUrl =
-    typeof window !== "undefined"
-      ? `${window.location.origin}/join/${game.joinUrlToken}`
-      : `/join/${game.joinUrlToken}`;
   const isFinished = game.status === "finished";
   const isDrawExhausted = game.drawCount >= TOTAL_NUMBERS;
 
@@ -320,30 +313,7 @@ export default function AdminGamePage() {
               </div>
             </div>
 
-            <div className="rounded-2xl border-[1.5px] border-matsuri-border-calm bg-white px-5 py-4.5">
-              <p className="font-heading text-2xl font-bold">抽選履歴</p>
-              {game.drawHistory.length === 0 ? (
-                <p className="mt-2 text-sm font-bold text-matsuri-placeholder">
-                  まだありません
-                </p>
-              ) : (
-                <div className="mt-3.5 flex flex-wrap gap-2.5">
-                  {game.drawHistory.map((draw, index) => {
-                    const isLatest = index === game.drawHistory.length - 1;
-                    return (
-                      <div
-                        key={draw.number}
-                        className={
-                          isLatest ? "admin-chip admin-chip-latest" : "admin-chip"
-                        }
-                      >
-                        {draw.number}
-                      </div>
-                    );
-                  })}
-                </div>
-              )}
-            </div>
+            <DrawHistoryCard draws={game.drawHistory} />
           </div>
 
           <div className="flex flex-col gap-5">
@@ -354,27 +324,10 @@ export default function AdminGamePage() {
               avatarVariant="gold"
             />
 
-            <div className="rounded-2xl border-[1.5px] border-matsuri-border-calm bg-white px-5 py-4.5">
-              <p className="font-heading text-2xl font-bold">参加用URL</p>
-              <div className="mt-2.5 flex items-start gap-3.5">
-                <div className="shrink-0 rounded-[10px] border-[1.5px] border-matsuri-border-calm p-1">
-                  <QrCode value={joinUrl} size={72} withActions />
-                </div>
-                <div className="flex flex-1 flex-col gap-2">
-                  <p className="rounded-lg bg-[#FBF8EE] px-2.5 py-2 font-mono text-[11px] leading-relaxed break-all text-matsuri-purple">
-                    {joinUrl}
-                  </p>
-                  <CopyButton
-                    value={joinUrl}
-                    className="w-fit shrink-0 cursor-pointer self-start rounded-full border-[1.5px] border-matsuri-border-calm px-3 py-1 font-heading text-[11px] font-bold text-matsuri-purple"
-                  />
-                  <p className="text-xs font-bold text-matsuri-muted">
-                    参加受付期限:{" "}
-                    {new Date(game.joinExpiresAt).toLocaleString("ja-JP")}
-                  </p>
-                </div>
-              </div>
-            </div>
+            <JoinUrlCard
+              joinUrlToken={game.joinUrlToken}
+              joinExpiresAt={game.joinExpiresAt}
+            />
           </div>
         </div>
       </div>
