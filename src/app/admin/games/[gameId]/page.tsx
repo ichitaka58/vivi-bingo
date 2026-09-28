@@ -8,13 +8,9 @@ import QrCode from "@/components/QrCode";
 import CopyButton from "@/components/CopyButton";
 import RouletteDraw from "@/components/RouletteDraw";
 import ConfirmDialog from "@/components/ConfirmDialog";
+import UserListCard, { type UserEntry } from "@/components/admin/UserListCard";
 
 type GameStatus = "draft" | "open" | "playing" | "finished";
-
-type UserEntry = {
-  userId: string;
-  userName: string;
-};
 
 type DrawEntry = {
   number: number;
@@ -351,61 +347,12 @@ export default function AdminGamePage() {
           </div>
 
           <div className="flex flex-col gap-5">
-            <div className="rounded-2xl border-[1.5px] border-matsuri-border-calm bg-white px-5 py-4.5">
-              <div className="flex items-center justify-between">
-                <p className="font-heading text-2xl font-bold">リーチ</p>
-                <span className="rounded-full border-[1.5px] border-matsuri-border-gold bg-matsuri-cream-soft px-2.5 py-0.5 font-heading text-[11px] font-bold text-matsuri-label">
-                  {game.reachUsers.length}人
-                </span>
-              </div>
-              {game.reachUsers.length === 0 ? (
-                <p className="mt-2 text-sm font-bold text-matsuri-placeholder">
-                  まだいません
-                </p>
-              ) : (
-                <div className="mt-2 flex max-h-23 flex-wrap content-start gap-1.5 overflow-y-auto pr-0.5">
-                  {game.reachUsers.map((user) => (
-                    <div
-                      key={user.userId}
-                      className="flex shrink-0 items-center gap-1.5 rounded-full border-[1.5px] border-matsuri-border-gold bg-matsuri-cream-soft py-0.5 pr-2.5 pl-0.5"
-                    >
-                      <span className="admin-avatar">
-                        {user.userName.charAt(0)}
-                      </span>
-                      <span className="text-xs font-bold">{user.userName}</span>
-                    </div>
-                  ))}
-                </div>
-              )}
-            </div>
-
-            <div className="rounded-2xl border-[1.5px] border-matsuri-border-calm bg-white px-5 py-4.5">
-              <div className="flex items-center justify-between">
-                <p className="font-heading text-2xl font-bold">ビンゴ</p>
-                <span className="rounded-full border-[1.5px] border-matsuri-border-gold bg-matsuri-cream-soft px-2.5 py-0.5 font-heading text-[11px] font-bold text-matsuri-label">
-                  {game.bingoUsers.length}人
-                </span>
-              </div>
-              {game.bingoUsers.length === 0 ? (
-                <p className="mt-2 text-sm font-bold text-matsuri-placeholder">
-                  まだいません
-                </p>
-              ) : (
-                <div className="mt-2 flex max-h-23 flex-wrap content-start gap-1.5 overflow-y-auto pr-0.5">
-                  {game.bingoUsers.map((user) => (
-                    <div
-                      key={user.userId}
-                      className="flex shrink-0 items-center gap-1.5 rounded-full border-[1.5px] border-matsuri-border-gold bg-matsuri-cream-soft py-0.5 pr-2.5 pl-0.5"
-                    >
-                      <span className="admin-avatar admin-avatar-gold">
-                        {user.userName.charAt(0)}
-                      </span>
-                      <span className="text-xs font-bold">{user.userName}</span>
-                    </div>
-                  ))}
-                </div>
-              )}
-            </div>
+            <UserListCard title="リーチ" users={game.reachUsers} />
+            <UserListCard
+              title="ビンゴ"
+              users={game.bingoUsers}
+              avatarVariant="gold"
+            />
 
             <div className="rounded-2xl border-[1.5px] border-matsuri-border-calm bg-white px-5 py-4.5">
               <p className="font-heading text-2xl font-bold">参加用URL</p>
