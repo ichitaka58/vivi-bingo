@@ -1,4 +1,5 @@
 import Link from "next/link";
+import SiteHeader from "@/components/SiteHeader";
 import { Baloo_2, Fredoka, Nunito } from "next/font/google";
 
 const baloo2 = Baloo_2({
@@ -69,12 +70,10 @@ export default function Home() {
     <div
       className={`contents ${baloo2.variable} ${fredoka.variable} ${nunito.variable}`}
     >
+      <SiteHeader />
       <div className="flex w-full flex-1 flex-col items-center justify-center bg-matsuri-cream px-4 py-16 font-round text-matsuri-navy">
         <div className="w-full max-w-lg text-center">
-          <span className="inline-flex w-fit rounded-full bg-matsuri-red px-3 py-1 font-heading text-xs font-bold tracking-wide text-matsuri-cream-soft">
-            BINGO PARTY
-          </span>
-          <h1 className="mt-4 font-heading text-6xl leading-none font-extrabold sm:text-7xl">
+          <h1 className="font-heading text-6xl leading-none font-extrabold sm:text-7xl">
             ViVi! Bingo!
           </h1>
           <p className="mt-5 text-sm leading-relaxed font-bold text-matsuri-muted sm:text-base">
@@ -82,6 +81,10 @@ export default function Home() {
             <br />
             ゲームを作って、みんなでリアルタイムに盛り上がろう。
           </p>
+          <span className="matsuri-raised-badge mt-6 inline-flex items-center gap-2 rounded-full px-5 py-2 font-heading text-base font-extrabold text-matsuri-navy">
+            <span aria-hidden>🔓</span>
+            アカウント登録・ログイン不要
+          </span>
 
           <div className="mt-8 rounded-2xl border-[1.5px] border-matsuri-border-calm bg-white p-4 sm:mx-auto sm:w-64 sm:p-3">
             <div className="grid grid-cols-5 gap-1.5 sm:gap-1">
@@ -122,6 +125,10 @@ export default function Home() {
 
           <div className="mt-8 rounded-2xl border-[1.5px] border-matsuri-border-calm bg-white p-6 text-left">
             <ul className="flex flex-col gap-3.5 text-sm font-bold">
+              <li className="flex items-start gap-2.5">
+                <span aria-hidden>🔓</span>
+                主催者も参加者も、面倒なアカウント作成・ログインは不要。すぐにゲームを始められます
+              </li>
               <li className="flex items-start gap-2.5">
                 <span aria-hidden>🎫</span>
                 参加者はアプリ不要。URL・QRコードを開くだけでボードが発行されます

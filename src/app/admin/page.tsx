@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
+import SiteHeader from "@/components/SiteHeader";
 import { getMyGameIds } from "@/lib/my-games";
 
 type GameStatus = "draft" | "open" | "playing" | "finished";
@@ -53,21 +54,19 @@ export default function AdminGameListPage() {
 
   return (
     <div className="flex w-full flex-1 flex-col bg-matsuri-cream font-round text-matsuri-navy">
-      <div className="admin-banner flex flex-wrap items-center justify-between gap-4 px-6 py-5 sm:px-9 sm:py-6">
-        <div className="flex flex-col gap-2">
-          <span className="inline-flex w-fit rounded-full bg-white px-3 py-1 font-heading text-xs font-bold tracking-wide text-matsuri-red">
-            BINGO PARTY
-          </span>
+      <div className="admin-banner">
+        <SiteHeader tone="banner" />
+        <div className="flex flex-wrap items-center justify-between gap-x-4 gap-y-3 px-6 py-4 sm:px-9">
           <h1 className="font-heading text-2xl font-extrabold text-matsuri-cream-soft sm:text-[28px]">
             ゲーム一覧
           </h1>
+          <Link
+            href="/admin/new"
+            className="cursor-pointer rounded-full border-[1.5px] border-matsuri-cream-soft px-5 py-2.5 font-heading text-[13px] font-bold text-matsuri-cream-soft"
+          >
+            新しいゲームを作成
+          </Link>
         </div>
-        <Link
-          href="/admin/new"
-          className="cursor-pointer self-start rounded-full border-[1.5px] border-matsuri-cream-soft px-5 py-2.5 font-heading text-[13px] font-bold text-matsuri-cream-soft"
-        >
-          新しいゲームを作成
-        </Link>
       </div>
 
       <div className="mx-auto flex w-full max-w-5xl flex-1 flex-col gap-4 px-6 py-6 sm:px-9">

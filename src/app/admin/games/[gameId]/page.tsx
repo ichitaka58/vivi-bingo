@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { useParams } from "next/navigation";
 import Link from "next/link";
+import SiteHeader from "@/components/SiteHeader";
 import RouletteDraw from "@/components/RouletteDraw";
 import ConfirmDialog from "@/components/ConfirmDialog";
 import UserListCard from "@/components/admin/UserListCard";
@@ -45,11 +46,14 @@ export default function AdminGamePage() {
 
   if (!game) {
     return (
-      <div className="flex flex-1 items-center justify-center bg-matsuri-cream px-4 py-16 font-round">
-        <p className="text-sm text-matsuri-red">
-          {error ?? "ゲームが見つかりません。"}
-        </p>
-      </div>
+      <>
+        <SiteHeader />
+        <div className="flex flex-1 items-center justify-center bg-matsuri-cream px-4 py-16 font-round">
+          <p className="text-sm text-matsuri-red">
+            {error ?? "ゲームが見つかりません。"}
+          </p>
+        </div>
+      </>
     );
   }
 
@@ -58,32 +62,34 @@ export default function AdminGamePage() {
 
   return (
     <div className="flex w-full flex-1 flex-col bg-matsuri-cream font-round text-matsuri-navy">
-      <div className="admin-banner flex flex-wrap items-start justify-between gap-4 px-6 py-5 sm:px-9 sm:py-6">
-        <div className="flex flex-col gap-2">
-          <Link
-            href="/admin"
-            className="inline-flex w-fit items-center gap-1 font-heading text-xs font-bold text-matsuri-cream-soft underline underline-offset-2"
+      <div className="admin-banner">
+        <SiteHeader tone="banner" />
+        <div className="flex flex-wrap items-center justify-between gap-x-4 gap-y-3 px-6 py-4 sm:px-9">
+          <div className="flex min-w-0 flex-col gap-1">
+            <Link
+              href="/admin"
+              className="w-fit font-heading text-xs font-bold text-matsuri-cream-soft/80 hover:underline hover:underline-offset-2"
+            >
+              ← ゲーム一覧
+            </Link>
+            <div className="flex flex-wrap items-baseline gap-x-3 gap-y-1">
+              <h1 className="min-w-0 font-heading text-2xl font-extrabold break-words text-matsuri-cream-soft sm:text-[28px]">
+                {game.title}
+              </h1>
+              <span className="shrink-0 text-sm font-bold text-matsuri-border-gold">
+                発行枚数 {game.boardCount} / {game.maxBoards}
+              </span>
+            </div>
+          </div>
+          <button
+            type="button"
+            onClick={() => setConfirmingFinish(true)}
+            disabled={finishing || isFinished}
+            className="cursor-pointer rounded-full border-[1.5px] border-matsuri-cream-soft px-5 py-2.5 font-heading text-[13px] font-bold text-matsuri-cream-soft disabled:cursor-not-allowed disabled:opacity-50"
           >
-            ← ゲーム一覧
-          </Link>
-          <span className="inline-flex w-fit rounded-full bg-white px-3 py-1 font-heading text-xs font-bold tracking-wide text-matsuri-red">
-            BINGO PARTY
-          </span>
-          <h1 className="font-heading text-2xl font-extrabold text-matsuri-cream-soft sm:text-[28px]">
-            {game.title}
-          </h1>
-          <p className="text-sm font-bold text-matsuri-border-gold">
-            発行枚数 {game.boardCount} / {game.maxBoards}
-          </p>
+            {finishing ? "終了処理中..." : "ゲームを終了する"}
+          </button>
         </div>
-        <button
-          type="button"
-          onClick={() => setConfirmingFinish(true)}
-          disabled={finishing || isFinished}
-          className="cursor-pointer self-start rounded-full border-[1.5px] border-matsuri-cream-soft px-5 py-2.5 font-heading text-[13px] font-bold text-matsuri-cream-soft disabled:cursor-not-allowed disabled:opacity-50"
-        >
-          {finishing ? "終了処理中..." : "ゲームを終了する"}
-        </button>
       </div>
 
       <ConfirmDialog

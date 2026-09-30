@@ -1,4 +1,3 @@
-import Link from "next/link";
 import { Baloo_2, Nunito } from "next/font/google";
 
 const baloo2 = Baloo_2({
@@ -11,13 +10,6 @@ const nunito = Nunito({
   weight: "variable",
   subsets: ["latin"],
 });
-
-const NAV_LINKS = [
-  { href: "/", label: "ホーム" },
-  { href: "/admin/new", label: "ゲームを作成" },
-  { href: "/#howto", label: "遊び方" },
-  { href: "/admin", label: "管理画面" },
-];
 
 export default function SiteFooter() {
   return (
@@ -33,18 +25,6 @@ export default function SiteFooter() {
             URLとQRコードで遊ぶ、オンライン縁日ビンゴ
           </span>
         </div>
-
-        <nav className="flex flex-wrap items-center justify-center gap-x-5 gap-y-2 text-xs font-bold">
-          {NAV_LINKS.map((link) => (
-            <Link
-              key={link.href}
-              href={link.href}
-              className="underline-offset-2 hover:underline"
-            >
-              {link.label}
-            </Link>
-          ))}
-        </nav>
 
         <p className="max-w-sm text-[11px] leading-relaxed font-bold text-matsuri-cream-soft/60">
           個人が制作・運営する非公式のサービスです。ご利用は自己責任でお願いします。
