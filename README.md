@@ -8,15 +8,18 @@
 
 オンラインBingoゲームです。
 オーナーがオンラインでBingo大会を開催し、参加者がスマホからURL/QRコード経由で参加してリアルタイムに進行する抽選ゲームに参加できるWebアプリです。想定同時参加者数は最大100名程度、単発〜数回のイベント利用を想定しています。
-※本アプリは、AIで実装しています。
+※本アプリは、Claude Codeで実装しています。
 
 ## 特徴
 
+- **アカウント作成・ログイン不要。** ゲーム主催者も参加者も、面倒な登録なしですぐにゲームを始められる
 - 参加者はURL/QRコードにアクセスし、名前を入力するだけで5×5のBingoボードを発行できる
 - 管理者が抽選を実行すると、Supabase Realtime経由で全参加者の画面に即座に反映される
 - リーチ・ビンゴの判定はサーバー側（API Routes）でのみ行い、不正な当落操作を防止
-- リーチ・ビンゴ成立時のアニメーション演出、ルーレット/ガラポン形式の抽選演出付き
+- 管理者画面ではルーレット形式の抽選演出付き
+- 参加者画面ではリーチ時に魚群演出＋リーチ音声、ビンゴ成立時に紙吹雪＋歓声の効果音
 - リロードしても同じBingoボードを復元表示（localStorageにboardIdを保存）
+- 主催者が作成したゲームはブラウザ（localStorage）に記録され、ログインなしでも `/admin` から一覧・再表示できる
 
 ## 技術スタック
 
@@ -27,7 +30,8 @@
 | リアルタイム配信 | Supabase Realtime |
 | スタイリング | Tailwind CSS |
 | QRコード生成 | `qrcode` |
-| 演出 | `canvas-confetti`, CSS/Canvasアニメーション |
+| 演出 | `canvas-confetti`, CSSアニメーション, 効果音（HTMLAudio） |
+| テスト | Vitest |
 | ホスティング | Vercel（アプリ）、Supabase（DB/Realtime） |
 
 ## セットアップ
@@ -35,7 +39,7 @@
 ### 前提
 
 - Node.js
-- Supabase CLI（DBマイグレーション適用に使用）
+- Supabase CLI（DBマイグレーション適用に使用。devDependenciesに含まれるため `npx supabase` で実行でき、別途インストールは不要）
 - Supabaseプロジェクト（[supabase.com](https://supabase.com)で作成、またはローカルCLIで起動）
 
 ### 手順
@@ -68,7 +72,7 @@ npx supabase db push
 npm run dev
 ```
 
-[http://localhost:3000](http://localhost:3000) で参加者向けトップページが表示されます。管理画面は `/admin` 配下です。
+[http://localhost:3000](http://localhost:3000) で主催者向けのトップページ（遊び方の説明、ゲーム作成・ゲーム一覧へのリンク）が表示されます。管理画面は `/admin` 配下です。参加者はゲームごとに発行される参加URL（`/join/[token]`）またはQRコードからアクセスします。
 
 ## よく使うコマンド
 
@@ -77,6 +81,7 @@ npm run dev     # 開発サーバー起動（next dev, Turbopack）
 npm run build   # 本番ビルド
 npm run start   # 本番サーバー起動（build後）
 npm run lint    # ESLint実行
+npm test        # ユニットテスト実行（Vitest）
 ```
 
 ## プロジェクト構成
@@ -84,20 +89,31 @@ npm run lint    # ESLint実行
 ```
 src/
   app/
-    page.tsx                          # トップページ
-    admin/                            # 管理者画面（ゲーム作成・進行・抽選）
+    page.tsx                          # トップページ（主催者向けの入口・遊び方）
+    globals.css                       # グローバルCSS（src/styles/ を @import）
+    admin/                            # 管理者画面
+      page.tsx                        # ゲーム一覧（このブラウザで作成したゲーム）
+      new/                            # ゲーム作成
+      games/[gameId]/                 # ゲーム進行・抽選
     join/[token]/                     # 参加画面（URL/QR経由でのボード発行）
     boards/[boardId]/                 # 参加者のBingoボード画面
     api/                              # API Routes
-      games/                         # ゲーム作成・取得・終了
-      games/[gameId]/boards/         # ボード発行
-      games/[gameId]/draws/          # 抽選実行
-      join/[token]/                  # 参加URLトークンの検証
-      boards/[boardId]/              # ボード情報取得
-  components/                         # 共通コンポーネント（QRコード、抽選演出 等）
-  lib/                                 # Supabaseクライアント、Bingoロジック等
+      games/                          # ゲーム作成
+      games/[gameId]/                 # ゲーム情報取得
+      games/[gameId]/boards/          # ボード発行
+      games/[gameId]/draws/           # 抽選実行
+      games/[gameId]/finish/          # ゲーム終了
+      join/[token]/                   # 参加URLトークンの検証
+      boards/[boardId]/               # ボード情報取得
+  components/                         # 共通コンポーネント（QRコード、ルーレット、魚群演出 等）
+    admin/                            # 管理者画面専用コンポーネント
+  hooks/                              # カスタムフック（useBoardSync / useBoardAudio / useAdminGame）
+  lib/                                # Supabaseクライアント、Bingoロジック等（*.test.ts はユニットテスト）
+  styles/                             # 画面別CSS（board / board-effects / admin / ui）
+public/
+  sounds/                             # 効果音（リーチ音声・ビンゴ歓声）
 supabase/
-  migrations/                          # DBマイグレーション
+  migrations/                         # DBマイグレーション
 ```
 
 ## データモデル
@@ -220,6 +236,8 @@ sequenceDiagram
 
 ### 抽選〜Realtime配信〜ゲーム終了
 
+※ `draw:number` / `board:reach` などのイベント名は設計時の概念名です。実装では各画面が Supabase Realtime の `postgres_changes`（`games` / `draws` / `boards` テーブルの変更）を購読し、変更を受けて最新状態を再取得しています。
+
 ```mermaid
 sequenceDiagram
     actor O as 管理者(オーナー)
@@ -238,30 +256,36 @@ sequenceDiagram
     API->>DB: 全boardsを走査し marked/isReach/isBingo を更新
     API->>API: 排他ロック解放
 
+    API-->>AFE: 抽選番号を返却
+
     DB-->>RT: テーブル変更を検知(Realtime Publication)
     RT-->>AFE: draw:number イベント配信
     RT-->>PFE: draw:number イベント配信
 
-    AFE-->>O: 抽選番号・抽選回数を更新表示 + 抽選演出
+    AFE-->>O: ルーレット演出（約3.3秒）
+    AFE-->>O: ルーレット停止後に抽選番号・抽選回数を更新表示
+    PFE-->>PFE: ルーレット演出に合わせて約4秒反映を保留（結果の先出し防止）
     PFE-->>PFE: 自分のボードに該当番号があれば3秒間フラッシュ後、当たりマークに変化
 
     opt 新たにisReach=trueになったユーザーがいる場合
         RT-->>AFE: board:reach イベント配信
         RT-->>PFE: 該当ユーザーへ board:reach イベント配信
         AFE-->>O: リーチユーザー名を一覧に追加表示
-        PFE-->>PFE: リーチ演出を発動し、該当ラインを強調表示
+        PFE-->>PFE: 魚群演出＋リーチ音声を再生し、該当ラインを強調表示
     end
 
     opt 新たにisBingo=trueになったユーザーがいる場合
         RT-->>AFE: board:bingo イベント配信
         RT-->>PFE: 該当ユーザーへ board:bingo イベント配信
         AFE-->>O: ビンゴユーザー名を一覧に追加表示
-        PFE-->>PFE: ビンゴを祝う演出を発動し、成立ラインを強調表示
+        PFE-->>PFE: 紙吹雪＋歓声の効果音を再生し、成立ラインを強調表示
     end
 
     Note over O,PFE: 抽選ボタン押下 〜 演出発火 のサイクルを繰り返す
 
     O->>AFE: 「ゲーム終了」ボタンをクリック
+    AFE-->>O: 確認ダイアログを表示
+    O->>AFE: 終了を確定
     AFE->>API: ゲーム終了リクエスト(gameId)
     API->>DB: games.status を 'finished' に更新
     DB-->>RT: 変更を検知
