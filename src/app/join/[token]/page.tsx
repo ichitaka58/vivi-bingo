@@ -150,8 +150,8 @@ export default function JoinPage() {
 
       <div className="relative z-10 mx-auto flex w-full max-w-md flex-1 flex-col justify-center gap-6 px-5 py-16">
         <div className="flex flex-col gap-1.5">
-          <span className="inline-flex w-fit rounded-full bg-matsuri-red px-3 py-1 font-heading text-xs font-bold tracking-wide text-matsuri-cream-soft">
-            BINGO PARTY
+          <span className="font-heading text-base leading-none font-extrabold text-matsuri-red">
+            ViVi! Bingo!
           </span>
           <h1 className="mt-1 font-heading text-3xl leading-tight font-extrabold">
             {game.title}

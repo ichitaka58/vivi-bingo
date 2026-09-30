@@ -1,4 +1,5 @@
 import Link from "next/link";
+import SiteHeader from "@/components/SiteHeader";
 import { Baloo_2, Fredoka, Nunito } from "next/font/google";
 
 const baloo2 = Baloo_2({
@@ -69,12 +70,10 @@ export default function Home() {
     <div
       className={`contents ${baloo2.variable} ${fredoka.variable} ${nunito.variable}`}
     >
+      <SiteHeader />
       <div className="flex w-full flex-1 flex-col items-center justify-center bg-matsuri-cream px-4 py-16 font-round text-matsuri-navy">
         <div className="w-full max-w-lg text-center">
-          <span className="inline-flex w-fit rounded-full bg-matsuri-red px-3 py-1 font-heading text-xs font-bold tracking-wide text-matsuri-cream-soft">
-            BINGO PARTY
-          </span>
-          <h1 className="mt-4 font-heading text-6xl leading-none font-extrabold sm:text-7xl">
+          <h1 className="font-heading text-6xl leading-none font-extrabold sm:text-7xl">
             ViVi! Bingo!
           </h1>
           <p className="mt-5 text-sm leading-relaxed font-bold text-matsuri-muted sm:text-base">
