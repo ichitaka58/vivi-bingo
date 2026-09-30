@@ -82,6 +82,10 @@ export default function Home() {
             <br />
             ゲームを作って、みんなでリアルタイムに盛り上がろう。
           </p>
+          <span className="matsuri-raised-badge mt-6 inline-flex items-center gap-2 rounded-full px-5 py-2 font-heading text-base font-extrabold text-matsuri-navy">
+            <span aria-hidden>🔓</span>
+            アカウント登録・ログイン不要
+          </span>
 
           <div className="mt-8 rounded-2xl border-[1.5px] border-matsuri-border-calm bg-white p-4 sm:mx-auto sm:w-64 sm:p-3">
             <div className="grid grid-cols-5 gap-1.5 sm:gap-1">
@@ -122,6 +126,10 @@ export default function Home() {
 
           <div className="mt-8 rounded-2xl border-[1.5px] border-matsuri-border-calm bg-white p-6 text-left">
             <ul className="flex flex-col gap-3.5 text-sm font-bold">
+              <li className="flex items-start gap-2.5">
+                <span aria-hidden>🔓</span>
+                主催者も参加者も、面倒なアカウント作成・ログインは不要。すぐにゲームを始められます
+              </li>
               <li className="flex items-start gap-2.5">
                 <span aria-hidden>🎫</span>
                 参加者はアプリ不要。URL・QRコードを開くだけでボードが発行されます

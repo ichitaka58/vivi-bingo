@@ -26,6 +26,14 @@
   cursor: not-allowed;
 }
 
+/* 浮き出る金色バッジ（近い影と遠い影を重ね、やわらかく浮いて見せる） */
+.matsuri-raised-badge {
+  background: var(--color-matsuri-gold);
+  box-shadow:
+    0 2px 4px rgba(122, 91, 0, 0.18),
+    0 8px 20px rgba(122, 91, 0, 0.22);
+}
+
 /* 確認モーダル（脱 window.confirm） */
 .confirm-backdrop {
   background: rgba(31, 42, 68, 0.55);
